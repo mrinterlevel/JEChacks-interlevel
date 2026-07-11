@@ -28,7 +28,10 @@ const LAYERS = {
   buildings: "toronto-3d-buildings",
   heatmap: "crime-density-heatmap",
   points: "crime-incident-points",
+  riskExtrusion: "high-risk-zones-extrusion",
   riskFill: "high-risk-zones-fill",
+  riskGlow: "high-risk-zones-glow",
+  riskLabel: "high-risk-zones-label",
   riskOutline: "high-risk-zones-outline",
 } as const;
 
@@ -52,6 +55,7 @@ type CrimePointProperties = {
 type RiskZoneProperties = {
   name: string;
   risk: number;
+  riskLabel?: string;
 };
 
 type RiskZoneCollection = FeatureCollection<MultiPolygon, RiskZoneProperties>;
@@ -88,6 +92,41 @@ function toCrimeGeoJSON(
       },
     })),
   };
+}
+
+function prepareRiskZones(data: RiskZoneCollection): RiskZoneCollection {
+  return {
+    ...data,
+    features: data.features.map((feature) => ({
+      ...feature,
+      properties: {
+        ...feature.properties,
+        riskLabel: `${Math.round(feature.properties.risk * 100)}% RISK`,
+      },
+    })),
+  };
+}
+
+function createFallbackCircleIcon() {
+  const width = 22;
+  const height = 22;
+  const data = new Uint8Array(width * height * 4);
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const distance = Math.hypot(x - width / 2, y - height / 2);
+      if (distance > 9.5) continue;
+
+      const offset = (y * width + x) * 4;
+      const isBorder = distance > 7.2;
+      data[offset] = isBorder ? 218 : 71;
+      data[offset + 1] = isBorder ? 239 : 117;
+      data[offset + 2] = isBorder ? 255 : 143;
+      data[offset + 3] = 235;
+    }
+  }
+
+  return { width, height, data };
 }
 
 function escapeHtml(value: string) {
@@ -129,7 +168,7 @@ function addBuildingLayer(map: MapLibreMap) {
       type: "fill-extrusion",
       source: buildingLayer.source,
       "source-layer": "building",
-      minzoom: 13.5,
+      minzoom: 12.5,
       filter: ["!=", ["get", "hide_3d"], true],
       paint: {
         "fill-extrusion-base": [
@@ -142,28 +181,56 @@ function addBuildingLayer(map: MapLibreMap) {
           ["linear"],
           ["coalesce", ["get", "render_height"], 8],
           0,
-          "#253848",
+          "#29495f",
           60,
-          "#36546a",
+          "#47758f",
           180,
-          "#4b718a",
+          "#6b9bb4",
         ],
         "fill-extrusion-height": [
           "interpolate",
           ["linear"],
           ["zoom"],
-          13.5,
+          12.5,
           0,
-          15,
+          14.2,
           ["coalesce", ["get", "render_height"], 8],
         ],
-        "fill-extrusion-opacity": 0.72,
+        "fill-extrusion-opacity": 0.88,
+        "fill-extrusion-vertical-gradient": true,
       },
     },
     findFirstLabelLayer(map),
   );
 
   return true;
+}
+
+function configureSceneLighting(map: MapLibreMap) {
+  map.setLight({
+    anchor: "map",
+    color: "#d8efff",
+    intensity: 0.68,
+    position: [1.65, 218, 42],
+  });
+
+  map.setSky({
+    "sky-color": "#07131d",
+    "horizon-color": "#183242",
+    "fog-color": "#102532",
+    "fog-ground-blend": 0.22,
+    "horizon-fog-blend": 0.38,
+    "sky-horizon-blend": 0.72,
+    "atmosphere-blend": [
+      "interpolate",
+      ["linear"],
+      ["zoom"],
+      8,
+      0.82,
+      14,
+      0.18,
+    ],
+  });
 }
 
 function addAnalysisLayers(
@@ -175,68 +242,9 @@ function addAnalysisLayers(
 
   map.addSource(SOURCES.risk, {
     type: "geojson",
-    data: riskData,
+    data: prepareRiskZones(riskData),
     generateId: true,
   });
-
-  map.addLayer(
-    {
-      id: LAYERS.riskFill,
-      type: "fill",
-      source: SOURCES.risk,
-      paint: {
-        "fill-color": [
-          "interpolate",
-          ["linear"],
-          ["get", "risk"],
-          0.45,
-          "#fbbf24",
-          0.65,
-          "#fb923c",
-          0.8,
-          "#f43f5e",
-          1,
-          "#be123c",
-        ],
-        "fill-opacity": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          8,
-          0.28,
-          13,
-          0.16,
-          16,
-          0.08,
-        ],
-      },
-    },
-    firstLabelLayer,
-  );
-
-  map.addLayer(
-    {
-      id: LAYERS.riskOutline,
-      type: "line",
-      source: SOURCES.risk,
-      paint: {
-        "line-color": [
-          "interpolate",
-          ["linear"],
-          ["get", "risk"],
-          0.45,
-          "#fbbf24",
-          0.75,
-          "#fb7185",
-          1,
-          "#e11d48",
-        ],
-        "line-opacity": 0.9,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1, 15, 2.5],
-      },
-    },
-    firstLabelLayer,
-  );
 
   map.addSource(SOURCES.crime, {
     type: "geojson",
@@ -304,6 +312,156 @@ function addAnalysisLayers(
           16,
           0,
         ],
+      },
+    },
+    firstLabelLayer,
+  );
+
+  // Risk zones intentionally render after the heatmap. The raised translucent
+  // surface and two border passes keep prediction areas legible without hiding
+  // the observed density underneath.
+  map.addLayer(
+    {
+      id: LAYERS.riskExtrusion,
+      type: "fill-extrusion",
+      source: SOURCES.risk,
+      minzoom: 9,
+      paint: {
+        "fill-extrusion-base": 3,
+        "fill-extrusion-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "risk"],
+          0.45,
+          "#fbbf24",
+          0.65,
+          "#fb923c",
+          0.8,
+          "#f43f5e",
+          1,
+          "#be123c",
+        ],
+        "fill-extrusion-height": [
+          "interpolate",
+          ["linear"],
+          ["get", "risk"],
+          0.45,
+          24,
+          0.65,
+          38,
+          0.8,
+          56,
+          1,
+          78,
+        ],
+        "fill-extrusion-opacity": 0.27,
+        "fill-extrusion-vertical-gradient": true,
+      },
+    },
+    firstLabelLayer,
+  );
+
+  map.addLayer(
+    {
+      id: LAYERS.riskFill,
+      type: "fill",
+      source: SOURCES.risk,
+      paint: {
+        "fill-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "risk"],
+          0.45,
+          "#fde68a",
+          0.7,
+          "#fb7185",
+          1,
+          "#e11d48",
+        ],
+        "fill-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          9,
+          0.2,
+          14,
+          0.11,
+          17,
+          0.06,
+        ],
+      },
+    },
+    firstLabelLayer,
+  );
+
+  map.addLayer(
+    {
+      id: LAYERS.riskGlow,
+      type: "line",
+      source: SOURCES.risk,
+      paint: {
+        "line-blur": 6,
+        "line-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "risk"],
+          0.45,
+          "#fcd34d",
+          0.75,
+          "#fb7185",
+          1,
+          "#f43f5e",
+        ],
+        "line-opacity": 0.72,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 10, 15, 16],
+      },
+    },
+    firstLabelLayer,
+  );
+
+  map.addLayer(
+    {
+      id: LAYERS.riskOutline,
+      type: "line",
+      source: SOURCES.risk,
+      paint: {
+        "line-color": [
+          "interpolate",
+          ["linear"],
+          ["get", "risk"],
+          0.45,
+          "#fef3c7",
+          0.75,
+          "#fecdd3",
+          1,
+          "#ffffff",
+        ],
+        "line-opacity": 0.98,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1.8, 15, 4],
+      },
+    },
+    firstLabelLayer,
+  );
+
+  map.addLayer(
+    {
+      id: LAYERS.riskLabel,
+      type: "symbol",
+      source: SOURCES.risk,
+      minzoom: 10,
+      layout: {
+        "text-field": ["concat", ["get", "name"], "\n", ["get", "riskLabel"]],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 10, 10, 14, 13],
+        "text-anchor": "center",
+        "text-letter-spacing": 0.08,
+        "text-max-width": 12,
+        "text-optional": true,
+      },
+      paint: {
+        "text-color": "#fff7ed",
+        "text-halo-blur": 0.8,
+        "text-halo-color": "#4c0519",
+        "text-halo-width": 2.2,
       },
     },
     firstLabelLayer,
@@ -380,7 +538,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
     useState<LayerVisibility>(INITIAL_VISIBILITY);
   const [radius, setRadius] = useState(34);
   const [intensity, setIntensity] = useState(1.35);
-  const [opacity, setOpacity] = useState(0.82);
+  const [opacity, setOpacity] = useState(0.74);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -390,11 +548,12 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
       container: containerRef.current,
       style: MAP_STYLE,
       center: TORONTO_CENTER,
-      zoom: 10.4,
-      pitch: 48,
-      bearing: -17,
+      zoom: 11.15,
+      pitch: 58,
+      bearing: -22,
       minZoom: 8,
-      maxZoom: 19,
+      maxZoom: 20,
+      maxPitch: 75,
       attributionControl: false,
       canvasContextAttributes: { antialias: true },
     });
@@ -409,6 +568,12 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
       "bottom-right",
     );
     map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
+
+    map.on("styleimagemissing", (event) => {
+      if (event.id === "circle-11" && !map.hasImage(event.id)) {
+        map.addImage(event.id, createFallbackCircleIcon(), { pixelRatio: 2 });
+      }
+    });
 
     map.on("load", async () => {
       try {
@@ -438,6 +603,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
         setIncidentCount(validCrimeRecords.length);
         setRiskZoneCount(riskZones.features.length);
 
+        configureSceneLighting(map);
         addBuildingLayer(map);
         addAnalysisLayers(map, toCrimeGeoJSON(validCrimeRecords), riskZones);
 
@@ -535,7 +701,13 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
     setLayerVisibility(mapRef.current, [LAYERS.points], visibility.points);
     setLayerVisibility(
       mapRef.current,
-      [LAYERS.riskFill, LAYERS.riskOutline],
+      [
+        LAYERS.riskExtrusion,
+        LAYERS.riskFill,
+        LAYERS.riskGlow,
+        LAYERS.riskOutline,
+        LAYERS.riskLabel,
+      ],
       visibility.riskZones,
     );
     setLayerVisibility(
@@ -603,9 +775,9 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   const resetView = () => {
     mapRef.current?.easeTo({
       center: TORONTO_CENTER,
-      zoom: 10.4,
-      pitch: 48,
-      bearing: -17,
+      zoom: 11.15,
+      pitch: 58,
+      bearing: -22,
       duration: 900,
     });
   };
@@ -669,8 +841,11 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
 
       <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full border border-brand-border bg-brand-panel/90 px-4 py-2 shadow-xl backdrop-blur-md">
         <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Density</span>
-        <div className="heatmap-legend h-2 w-36 rounded-full" />
+        <div className="heatmap-legend h-2 w-32 rounded-full" />
         <div className="flex gap-3 text-[10px] text-brand-text-muted"><span>Low</span><span>High</span></div>
+        <span className="h-5 w-px bg-brand-border" />
+        <span className="risk-zone-legend h-4 w-8" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Raised risk zone</span>
       </div>
 
       {!dataReady && !error && (

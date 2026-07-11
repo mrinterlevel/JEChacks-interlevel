@@ -118,6 +118,13 @@ body {
   background: linear-gradient(90deg, #0ea5e9, #22d3ee, #facc15, #fb923c, #f43f5e, #be185d);
 }
 
+.risk-zone-legend {
+  transform: skewY(-12deg);
+  border: 2px solid #fff7ed;
+  background: rgb(244 63 94 / 32%);
+  box-shadow: 0 0 10px 3px rgb(244 63 94 / 55%);
+}
+
 @media (max-width: 900px) {
   .map-analysis-panel {
     top: 7.5rem;
