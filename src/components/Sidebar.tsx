@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 
 import { supabase } from '@/lib/supabase';
