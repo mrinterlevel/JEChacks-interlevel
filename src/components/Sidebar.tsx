@@ -102,16 +102,27 @@ const dummySignals: DistressSignal[] = [
   }
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ searchQuery }: { searchQuery: string }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedId(prev => prev === id ? null : id);
   };
 
+  const filteredSignals = dummySignals.filter(signal => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return (
+      signal.offence.toLowerCase().includes(lowerQuery) ||
+      signal.location_name.toLowerCase().includes(lowerQuery) ||
+      signal.event_unique_id.toLowerCase().includes(lowerQuery) ||
+      signal.description.toLowerCase().includes(lowerQuery)
+    );
+  });
+
   return (
     <div className="absolute right-4 top-20 bottom-4 w-96 flex flex-col gap-4 z-10 overflow-y-auto no-scrollbar pointer-events-none">
-      {dummySignals.map((signal) => {
+      {filteredSignals.map((signal) => {
         const isExpanded = expandedId === signal.id;
 
         return (

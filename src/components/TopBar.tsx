@@ -3,7 +3,13 @@
 import React, { useState } from 'react';
 import { Search, Map as MapIcon, Filter, Calendar, CheckCircle2 } from 'lucide-react';
 
-export default function TopBar() {
+export default function TopBar({ 
+  searchQuery, 
+  onSearchChange 
+}: { 
+  searchQuery: string;
+  onSearchChange: (query: string) => void;
+}) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   return (
@@ -21,6 +27,8 @@ export default function TopBar() {
         </div>
         <input 
           type="text" 
+          value={searchQuery}
+          onChange={(e) => onSearchChange(e.target.value)}
           placeholder="Search locations or IDs..." 
           className="bg-transparent border-none outline-none py-2 pr-4 text-sm w-64 placeholder:text-brand-text-muted text-brand-text"
         />
