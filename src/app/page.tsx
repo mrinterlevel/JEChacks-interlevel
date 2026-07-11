@@ -14,8 +14,11 @@ const MapView = dynamic(() => import("@/components/MapView"), {
   ),
 });
 
+export type MapMode = 'live' | 'heatmap';
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [mapMode, setMapMode] = useState<MapMode>('live');
 
   return (
     <main className="relative w-full h-screen overflow-hidden">
