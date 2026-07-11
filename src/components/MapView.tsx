@@ -14,6 +14,7 @@ import maplibregl, {
   Map as MapLibreMap,
   MapLayerMouseEvent,
 } from "maplibre-gl";
+import type { LngLatLike } from "maplibre-gl";
 import type {
   FeatureCollection,
   MultiPolygon,
@@ -27,6 +28,7 @@ const MAP_STYLE = "https://tiles.openfreemap.org/styles/fiord";
 const LAYERS = {
   buildings: "toronto-3d-buildings",
   heatmap: "crime-density-heatmap",
+  historicalHeatmap: "historical-incident-density-heatmap",
   pointHalo: "crime-incident-point-halo",
   points: "crime-incident-points",
   riskExtrusion: "high-risk-zones-extrusion",
@@ -82,6 +84,7 @@ type RiskZoneCollection = FeatureCollection<MultiPolygon, RiskZoneProperties>;
 type LayerVisibility = {
   buildings: boolean;
   heatmap: boolean;
+  historicalHeatmap: boolean;
   points: boolean;
   riskZones: boolean;
 };
@@ -89,6 +92,7 @@ type LayerVisibility = {
 const INITIAL_VISIBILITY: LayerVisibility = {
   buildings: true,
   heatmap: true,
+  historicalHeatmap: true,
   points: true,
   riskZones: true,
 };
@@ -228,18 +232,91 @@ function createFallbackCircleIcon() {
   return { width, height, data };
 }
 
-function escapeHtml(value: string) {
-  return value.replace(
-    /[&<>'"]/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        "'": "&#039;",
-        '"': "&quot;",
-      })[character] ?? character,
+function showStyledPopup({
+  map,
+  lngLat,
+  offset,
+  eyebrow,
+  title,
+  detail,
+}: {
+  map: MapLibreMap;
+  lngLat: LngLatLike;
+  offset: number;
+  eyebrow: string;
+  title: string;
+  detail: string;
+}) {
+  const content = document.createElement("div");
+  Object.assign(content.style, {
+    display: "flex",
+    flexDirection: "column",
+    gap: "5px",
+    paddingRight: "10px",
+  });
+
+  const eyebrowElement = document.createElement("span");
+  eyebrowElement.textContent = eyebrow;
+  Object.assign(eyebrowElement.style, {
+    color: "#fb7185",
+    fontSize: "9px",
+    fontWeight: "700",
+    letterSpacing: "0.12em",
+    textTransform: "uppercase",
+  });
+
+  const titleElement = document.createElement("strong");
+  titleElement.textContent = title;
+  Object.assign(titleElement.style, {
+    color: "#f3f4f6",
+    fontSize: "13px",
+    lineHeight: "1.35",
+  });
+
+  const detailElement = document.createElement("span");
+  detailElement.textContent = detail;
+  Object.assign(detailElement.style, {
+    color: "#9ca3af",
+    fontSize: "11px",
+  });
+
+  content.append(eyebrowElement, titleElement, detailElement);
+
+  const popup = new maplibregl.Popup({
+    className: "crime-map-popup",
+    closeButton: true,
+    offset,
+  })
+    .setLngLat(lngLat)
+    .setDOMContent(content)
+    .addTo(map);
+
+  const popupElement = popup.getElement();
+  const popupBody = popupElement.querySelector<HTMLElement>(
+    ".maplibregl-popup-content",
   );
+  if (popupBody) {
+    Object.assign(popupBody.style, {
+      minWidth: "220px",
+      border: "1px solid #2c394a",
+      borderRadius: "12px",
+      background: "#1a232e",
+      color: "#f3f4f6",
+      boxShadow: "0 20px 45px rgb(0 0 0 / 45%)",
+      padding: "14px 16px",
+    });
+  }
+
+  const closeButton = popupElement.querySelector<HTMLElement>(
+    ".maplibregl-popup-close-button",
+  );
+  if (closeButton) {
+    Object.assign(closeButton.style, {
+      color: "#9ca3af",
+      fontSize: "18px",
+      padding: "4px 8px",
+    });
+  }
 }
 
 function findFirstLabelLayer(map: MapLibreMap) {
@@ -359,6 +436,67 @@ function addAnalysisLayers(
 
   map.addLayer(
     {
+      id: LAYERS.historicalHeatmap,
+      type: "heatmap",
+      source: SOURCES.crime,
+      maxzoom: 15.5,
+      paint: {
+        "heatmap-weight": 1,
+        "heatmap-intensity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          0.55,
+          12,
+          0.9,
+          15,
+          1.2,
+        ],
+        "heatmap-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          12,
+          12,
+          24,
+          15,
+          34,
+        ],
+        "heatmap-color": [
+          "interpolate",
+          ["linear"],
+          ["heatmap-density"],
+          0,
+          "rgba(14, 165, 233, 0)",
+          0.2,
+          "rgba(34, 211, 238, 0.48)",
+          0.45,
+          "rgba(14, 165, 233, 0.68)",
+          0.7,
+          "rgba(79, 70, 229, 0.8)",
+          1,
+          "rgba(126, 34, 206, 0.9)",
+        ],
+        "heatmap-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          8,
+          0.3,
+          13,
+          0.22,
+          15.5,
+          0,
+        ],
+      },
+    },
+    firstLabelLayer,
+  );
+
+  map.addLayer(
+    {
       id: LAYERS.heatmap,
       type: "heatmap",
       source: SOURCES.predictions,
@@ -378,11 +516,11 @@ function addAnalysisLayers(
           ["linear"],
           ["zoom"],
           8,
-          0.65,
+          1,
           12,
-          1.25,
+          2,
           15,
-          2.06,
+          3.25,
         ],
         "heatmap-radius": [
           "interpolate",
@@ -400,17 +538,15 @@ function addAnalysisLayers(
           ["linear"],
           ["heatmap-density"],
           0,
-          "rgba(14, 165, 233, 0)",
+          "rgba(250, 204, 21, 0)",
           0.12,
-          "rgba(14, 165, 233, 0.55)",
+          "rgba(250, 204, 21, 0.5)",
           0.3,
-          "rgba(34, 211, 238, 0.72)",
+          "rgba(251, 146, 60, 0.72)",
           0.5,
-          "rgba(250, 204, 21, 0.82)",
-          0.7,
-          "rgba(251, 146, 60, 0.9)",
-          0.88,
-          "rgba(244, 63, 94, 0.96)",
+          "rgba(244, 63, 94, 0.86)",
+          0.75,
+          "rgba(225, 29, 72, 0.95)",
           1,
           "rgba(190, 24, 93, 1)",
         ],
@@ -585,7 +721,7 @@ function addAnalysisLayers(
       id: LAYERS.pointHalo,
       type: "circle",
       source: SOURCES.crime,
-      minzoom: 10,
+      minzoom: 11.25,
       paint: {
         "circle-blur": 0.8,
         "circle-color": [
@@ -606,8 +742,8 @@ function addAnalysisLayers(
           "interpolate",
           ["linear"],
           ["zoom"],
-          10,
-          0.22,
+          11.25,
+          0.26,
           13,
           0.38,
           17,
@@ -617,8 +753,8 @@ function addAnalysisLayers(
           "interpolate",
           ["linear"],
           ["zoom"],
-          10,
-          4,
+          11.25,
+          5,
           14,
           10,
           18,
@@ -634,7 +770,7 @@ function addAnalysisLayers(
       id: LAYERS.points,
       type: "circle",
       source: SOURCES.crime,
-      minzoom: 10,
+      minzoom: 11.25,
       paint: {
         "circle-color": [
           "case",
@@ -654,8 +790,8 @@ function addAnalysisLayers(
           "interpolate",
           ["linear"],
           ["zoom"],
-          10,
-          0.48,
+          11.25,
+          0.56,
           12.5,
           0.72,
           17,
@@ -665,8 +801,8 @@ function addAnalysisLayers(
           "interpolate",
           ["linear"],
           ["zoom"],
-          10,
-          1.8,
+          11.25,
+          2.2,
           13,
           3.2,
           16,
@@ -680,8 +816,8 @@ function addAnalysisLayers(
           "interpolate",
           ["linear"],
           ["zoom"],
-          10,
-          0.6,
+          11.25,
+          0.7,
           17,
           1.8,
         ],
@@ -826,16 +962,14 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
           const offence = String(feature?.properties?.offence ?? "Incident");
           const date = String(feature?.properties?.date ?? "Unknown date");
 
-          new maplibregl.Popup({
-            className: "crime-map-popup",
-            closeButton: true,
+          showStyledPopup({
+            map,
+            lngLat: coordinates,
             offset: 12,
-          })
-            .setLngLat(coordinates)
-            .setHTML(
-              `<div class="crime-popup"><span class="crime-popup__eyebrow">Reported incident</span><strong>${escapeHtml(offence)}</strong><span>${escapeHtml(date)}</span></div>`,
-            )
-            .addTo(map);
+            eyebrow: "Reported incident",
+            title: offence,
+            detail: date,
+          });
         });
 
         map.on("click", LAYERS.riskFill, (event: MapLayerMouseEvent) => {
@@ -848,16 +982,14 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
           const name = String(feature?.properties?.name ?? "High-risk zone");
           const risk = Number(feature?.properties?.risk ?? 0);
 
-          new maplibregl.Popup({
-            className: "crime-map-popup",
-            closeButton: true,
+          showStyledPopup({
+            map,
+            lngLat: event.lngLat,
             offset: 8,
-          })
-            .setLngLat(event.lngLat)
-            .setHTML(
-              `<div class="crime-popup"><span class="crime-popup__eyebrow">Predicted risk zone</span><strong>${escapeHtml(name)}</strong><span>${Math.round(risk * 100)}% relative risk score</span></div>`,
-            )
-            .addTo(map);
+            eyebrow: "Predicted risk zone",
+            title: name,
+            detail: `${Math.round(risk * 100)}% relative risk score`,
+          });
         });
 
         setDataReady(true);
@@ -904,6 +1036,11 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   useEffect(() => {
     if (!dataReady || !mapRef.current) return;
     setLayerVisibility(mapRef.current, [LAYERS.heatmap], visibility.heatmap);
+    setLayerVisibility(
+      mapRef.current,
+      [LAYERS.historicalHeatmap],
+      visibility.historicalHeatmap,
+    );
     setLayerVisibility(
       mapRef.current,
       [LAYERS.pointHalo, LAYERS.points],
@@ -953,11 +1090,11 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
       ["linear"],
       ["zoom"],
       8,
-      intensity * 0.52,
+      intensity * 0.8,
       12,
-      intensity,
+      intensity * 1.6,
       15,
-      intensity * 1.65,
+      intensity * 2.6,
     ]);
   }, [dataReady, intensity]);
 
@@ -1029,6 +1166,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
               <Layers3 className="h-3.5 w-3.5" /> Layers
             </p>
             <LayerToggle icon={Flame} label="Predicted risk heatmap" active={visibility.heatmap} onClick={() => toggleLayer("heatmap")} />
+            <LayerToggle icon={Layers3} label="Historical incident density" active={visibility.historicalHeatmap} onClick={() => toggleLayer("historicalHeatmap")} />
             <LayerToggle icon={MapPin} label="Incident points" active={visibility.points} onClick={() => toggleLayer("points")} />
             <LayerToggle icon={SlidersHorizontal} label="Predicted risk zones" active={visibility.riskZones} onClick={() => toggleLayer("riskZones")} />
             <LayerToggle icon={Building2} label="3D buildings" active={visibility.buildings} onClick={() => toggleLayer("buildings")} />
@@ -1050,9 +1188,12 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
       </section>
 
       <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full border border-brand-border bg-brand-panel/90 px-4 py-2 shadow-xl backdrop-blur-md">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Forecast</span>
-        <div className="heatmap-legend h-2 w-32 rounded-full" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Prediction</span>
+        <div className="prediction-heatmap-legend h-2 w-28 rounded-full" />
         <div className="flex gap-3 text-[10px] text-brand-text-muted"><span>Low</span><span>High</span></div>
+        <span className="h-5 w-px bg-brand-border" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">History</span>
+        <div className="historical-heatmap-legend h-2 w-20 rounded-full" />
         <span className="h-5 w-px bg-brand-border" />
         <span className="risk-zone-legend h-4 w-8" />
         <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Raised risk zone</span>

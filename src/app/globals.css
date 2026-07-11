@@ -125,8 +125,12 @@ body {
   box-shadow: 0 0 0 1px var(--color-brand-primary);
 }
 
-.heatmap-legend {
-  background: linear-gradient(90deg, #0ea5e9, #22d3ee, #facc15, #fb923c, #f43f5e, #be185d);
+.prediction-heatmap-legend {
+  background: linear-gradient(90deg, #facc15, #fb923c, #f43f5e, #be185d);
+}
+
+.historical-heatmap-legend {
+  background: linear-gradient(90deg, #22d3ee, #0ea5e9, #4f46e5, #7e22ce);
 }
 
 .risk-zone-legend {
