@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-bg: #131A22; /* Very dark blue for base */
+  --color-brand-panel: #1A232E; /* Slightly lighter for sidebars and panels */
+  --color-brand-card: #202A36; /* Lighter for cards */
+  --color-brand-border: #2C394A; /* Border colors */
+  
+  --color-brand-primary: #F43F5E; /* Red/Pink for high severity */
+  --color-brand-success: #10B981; /* Green for low severity/resolved */
+  --color-brand-warning: #F59E0B; /* Yellow for medium severity */
+  
+  --color-brand-text: #F3F4F6;
+  --color-brand-text-muted: #9CA3AF;
+  
+  --color-background: var(--color-brand-bg);
+  --color-foreground: var(--color-brand-text);
+  
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans), sans-serif;
+}
+
