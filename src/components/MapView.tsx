@@ -202,32 +202,30 @@ function toPredictionGeoJSON(
 function predictionRadiusExpression(
   baseRadius: number,
 ): ExpressionSpecification {
+  const riskMultiplier: ExpressionSpecification = [
+    "interpolate",
+    ["linear"],
+    ["get", "risk"],
+    0,
+    0.6,
+    0.5,
+    0.95,
+    0.75,
+    1.3,
+    1,
+    1.75,
+  ];
+
   return [
-    "*",
-    [
-      "interpolate",
-      ["linear"],
-      ["zoom"],
-      8,
-      baseRadius * 0.55,
-      12,
-      baseRadius,
-      15,
-      baseRadius * 1.4,
-    ],
-    [
-      "interpolate",
-      ["linear"],
-      ["get", "risk"],
-      0,
-      0.6,
-      0.5,
-      0.95,
-      0.75,
-      1.3,
-      1,
-      1.75,
-    ],
+    "interpolate",
+    ["linear"],
+    ["zoom"],
+    8,
+    ["*", baseRadius * 0.55, riskMultiplier],
+    12,
+    ["*", baseRadius, riskMultiplier],
+    15,
+    ["*", baseRadius * 1.4, riskMultiplier],
   ] as ExpressionSpecification;
 }
 
