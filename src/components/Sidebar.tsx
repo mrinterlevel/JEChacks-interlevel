@@ -1,254 +1,144 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import React from 'react';
+import { Clock, MapPin, User, Hash, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
-import { supabase } from '@/lib/supabase';
+import {
+  formatRelativeTime,
+  formatTimestamp,
+  type DistressSignal,
+  type MapMode,
+} from '@/lib/distress';
 
-export type DistressSignal = {
-  id: string;
-  location_name: string;
-  timestamp: string;
-  severity: 'high' | 'medium' | 'low';
-  description: string;
-  
-  // Extended fields based on Police Data Portal (optional for live signals)
-  event_unique_id?: string;
-  report_date?: string;
-  occ_date?: string;
-  report_year?: string;
-  report_month?: string;
-  report_day?: string;
-  report_doy?: string;
-  report_dow?: string;
-  report_hour?: string;
-  occ_year?: string;
-  occ_month?: string;
-  occ_day?: string;
-  occ_doy?: string;
-  occ_dow?: string;
-  occ_hour?: string;
-  division?: string;
-  ucr_code?: string;
-  ucr_ext?: string;
-  offence?: string;
-  neighbourhood_158?: string;
-  hood_140?: string;
-  neighbourhood_140?: string;
-  long_wgs84?: string;
-  lat_wgs84?: string;
-};
+export default function Sidebar({
+  mapMode,
+  distressSignals,
+  onResolve,
+}: {
+  mapMode: MapMode;
+  distressSignals: DistressSignal[];
+  onResolve: (id: string) => void;
+}) {
+  // The distress feed only belongs on the distress view.
+  if (mapMode !== 'distress') return null;
 
-// ... keep dummySignals here if we still want fallback data, but let's just use state ...
-
-export default function Sidebar({ searchQuery, mapMode }: { searchQuery: string; mapMode: 'live' | 'heatmap' }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [liveSignals, setLiveSignals] = useState<DistressSignal[]>([]);
-
-  useEffect(() => {
-    // Initial fetch
-    const fetchSignals = async () => {
-      const { data } = await supabase
-        .from('distress_signals')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (data) {
-        const mapped = data.map(row => ({
-          id: row.id,
-          location_name: 'Live Mobile Signal',
-          timestamp: new Date(row.created_at).toLocaleString(),
-          severity: 'high' as const,
-          description: `Emergency triggered by ${row.name || 'Anonymous'}. Coordinates: ${row.lat}, ${row.lng}`,
-          event_unique_id: `LIVE-${row.id.substring(0, 8)}`,
-          offence: 'Active Distress Signal',
-          lat_wgs84: String(row.lat),
-          long_wgs84: String(row.lng),
-          report_date: new Date(row.created_at).toLocaleString()
-        }));
-        setLiveSignals(mapped);
-      }
-    };
-
-    fetchSignals();
-
-    // Subscribe to realtime changes
-    const channel = supabase.channel('public:distress_signals')
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'distress_signals' }, payload => {
-        const row = payload.new;
-        const newSignal: DistressSignal = {
-          id: row.id,
-          location_name: 'Live Mobile Signal',
-          timestamp: new Date(row.created_at).toLocaleString(),
-          severity: 'high',
-          description: `Emergency triggered by ${row.name || 'Anonymous'}. Coordinates: ${row.lat}, ${row.lng}`,
-          event_unique_id: `LIVE-${row.id.substring(0, 8)}`,
-          offence: 'Active Distress Signal',
-          lat_wgs84: String(row.lat),
-          long_wgs84: String(row.lng),
-          report_date: new Date(row.created_at).toLocaleString()
-        };
-        setLiveSignals(prev => [newSignal, ...prev]);
-      })
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
-
-  if (mapMode === 'heatmap') return null;
-
-  const toggleExpand = (id: string) => {
-    setExpandedId(prev => prev === id ? null : id);
-  };
-
-  const filteredSignals = liveSignals.filter(signal => {
-    if (!searchQuery) return true;
-    const lowerQuery = searchQuery.toLowerCase();
-    return (
-      signal.offence?.toLowerCase().includes(lowerQuery) ||
-      signal.location_name.toLowerCase().includes(lowerQuery) ||
-      signal.event_unique_id?.toLowerCase().includes(lowerQuery) ||
-      signal.description.toLowerCase().includes(lowerQuery)
-    );
-  });
+  const activeCount = distressSignals.filter((signal) => signal.status === 'active').length;
 
   return (
-    <div className="absolute right-4 top-20 bottom-4 w-96 flex flex-col gap-4 z-10 overflow-y-auto no-scrollbar pointer-events-none">
-      {filteredSignals.map((signal) => {
-        const isExpanded = expandedId === signal.id;
-
-        return (
-          <div 
-            key={signal.id} 
-            className="bg-brand-panel border border-brand-border rounded-xl shadow-2xl pointer-events-auto transition-colors group flex flex-col overflow-hidden"
-          >
-            <div className="p-5 hover:bg-brand-card cursor-pointer" onClick={() => toggleExpand(signal.id)}>
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full ${
-                    signal.severity === 'high' ? 'bg-brand-primary' : 
-                    signal.severity === 'medium' ? 'bg-brand-warning' : 'bg-brand-success'
-                  }`} />
-                  <span className="text-brand-text font-bold text-lg">{signal.event_unique_id}</span>
-                </div>
-                <div className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                  signal.severity === 'high' ? 'bg-brand-primary/20 text-brand-primary' : 
-                  signal.severity === 'medium' ? 'bg-brand-warning/20 text-brand-warning' : 'bg-brand-success/20 text-brand-success'
-                }`}>
-                  {signal.severity === 'high' ? 'Action required' : 
-                  signal.severity === 'medium' ? 'Monitoring' : 'Resolved'}
-                </div>
-              </div>
-              
-              <h3 className="text-brand-text text-md font-medium mb-4">{signal.offence} - {signal.location_name}</h3>
-              
-              <div className="flex gap-4 text-sm text-brand-text-muted mb-4">
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4" />
-                  <span>{signal.division}</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Clock className="w-4 h-4" />
-                  <span>{signal.report_date}</span>
-                </div>
-              </div>
-
-              <div className="text-sm text-brand-text-muted bg-brand-bg rounded-lg p-3 group-hover:bg-brand-border/50 transition-colors">
-                {signal.description}
-              </div>
-              
-              <div className="mt-4 flex gap-2">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); toggleExpand(signal.id); }}
-                  className="flex-1 flex items-center justify-center gap-2 bg-brand-bg border border-brand-border rounded-full py-2 text-xs font-medium text-brand-text hover:bg-brand-border transition-colors"
-                >
-                  {isExpanded ? (
-                    <>Hide Details <ChevronUp className="w-3 h-3" /></>
-                  ) : (
-                    <>View Full Details <ChevronDown className="w-3 h-3" /></>
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Expanded Content Area */}
-            {isExpanded && (
-              <div className="bg-brand-bg p-5 border-t border-brand-border overflow-y-auto max-h-64 text-sm">
-                <table className="w-full text-left border-collapse">
-                  <tbody>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">OBJECTID</td>
-                      <td className="py-2 text-brand-text">{signal.id}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">EVENT_UNIQUE_ID</td>
-                      <td className="py-2 text-brand-text font-medium">{signal.event_unique_id}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">REPORT_DATE</td>
-                      <td className="py-2 text-brand-text">{signal.report_date}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">OCC_DATE</td>
-                      <td className="py-2 text-brand-text">{signal.occ_date}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">REPORT_YEAR</td>
-                      <td className="py-2 text-brand-text">{signal.report_year}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">REPORT_MONTH</td>
-                      <td className="py-2 text-brand-text">{signal.report_month}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">REPORT_DAY</td>
-                      <td className="py-2 text-brand-text">{signal.report_day}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">REPORT_DOW</td>
-                      <td className="py-2 text-brand-text">{signal.report_dow}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">OCC_YEAR</td>
-                      <td className="py-2 text-brand-text">{signal.occ_year}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">OCC_MONTH</td>
-                      <td className="py-2 text-brand-text">{signal.occ_month}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">DIVISION</td>
-                      <td className="py-2 text-brand-text">{signal.division}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">UCR_CODE</td>
-                      <td className="py-2 text-brand-text">{signal.ucr_code}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">OFFENCE</td>
-                      <td className="py-2 text-brand-text">{signal.offence}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">NEIGHBOURHOOD_158</td>
-                      <td className="py-2 text-brand-text">{signal.neighbourhood_158}</td>
-                    </tr>
-                    <tr className="border-b border-brand-border/50">
-                      <td className="py-2 text-brand-text-muted">LONG_WGS84</td>
-                      <td className="py-2 text-brand-text">{signal.long_wgs84}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 text-brand-text-muted">LAT_WGS84</td>
-                      <td className="py-2 text-brand-text">{signal.lat_wgs84}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+    <div className="absolute right-4 top-20 bottom-4 w-96 flex flex-col gap-3 z-10 overflow-y-auto no-scrollbar pointer-events-none">
+      <div className="shrink-0 pointer-events-auto flex items-center justify-between rounded-xl border border-brand-border bg-brand-panel/95 px-4 py-3 shadow-2xl backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            {activeCount > 0 && (
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-primary opacity-75" />
             )}
+            <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${activeCount > 0 ? 'bg-brand-primary' : 'bg-brand-success'}`} />
+          </span>
+          <span className="text-sm font-semibold text-brand-text">Distress signals</span>
+        </div>
+        <span className="text-xs text-brand-text-muted">
+          <span className="font-semibold text-brand-primary">{activeCount}</span> active · {distressSignals.length} total
+        </span>
+      </div>
+
+      {distressSignals.length === 0 && (
+        <div className="shrink-0 pointer-events-auto rounded-xl border border-brand-border bg-brand-panel/95 px-4 py-6 text-center text-sm text-brand-text-muted shadow-2xl backdrop-blur-md">
+          No distress signals to show.
+        </div>
+      )}
+
+      {distressSignals.map((signal) => (
+        <SignalCard key={signal.id} signal={signal} onResolve={onResolve} />
+      ))}
+    </div>
+  );
+}
+
+// Memoized so resolving one signal doesn't re-render all ~800 cards — only the
+// card whose signal object actually changed re-renders.
+const SignalCard = React.memo(function SignalCard({
+  signal,
+  onResolve,
+}: {
+  signal: DistressSignal;
+  onResolve: (id: string) => void;
+}) {
+  const isActive = signal.status === 'active';
+
+  return (
+    <div
+      className={`shrink-0 pointer-events-auto flex flex-col overflow-hidden rounded-xl border shadow-2xl ${
+        isActive
+          ? 'border-brand-primary/70 bg-brand-panel ring-1 ring-brand-primary/40 animate-distress-enter'
+          : 'border-brand-border bg-brand-panel/95'
+      }`}
+    >
+      <div className="p-5">
+        <div className="mb-3 flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-3 w-3">
+              {isActive && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-primary opacity-75" />
+              )}
+              <span className={`relative inline-flex h-3 w-3 rounded-full ${isActive ? 'bg-brand-primary' : 'bg-brand-text-muted'}`} />
+            </span>
+            <span className="text-lg font-bold text-brand-text">{signal.category}</span>
           </div>
-        );
-      })}
+          <div className={`flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold ${
+            isActive ? 'bg-brand-primary/20 text-brand-primary' : 'bg-brand-success/20 text-brand-success'
+          }`}>
+            {isActive ? <AlertTriangle className="h-3 w-3" /> : <CheckCircle2 className="h-3 w-3" />}
+            {isActive ? 'Action required' : 'Resolved'}
+          </div>
+        </div>
+
+        <h3 className="mb-4 text-md font-medium text-brand-text">{signal.locationName}</h3>
+
+        {/* Details are shown open by default — no click required. */}
+        <div className="grid grid-cols-1 gap-2 rounded-lg bg-brand-bg p-3 text-sm">
+          <DetailRow icon={Clock} label="Reported">
+            <span className="text-brand-text">{formatTimestamp(signal.createdAt)}</span>
+            <span className="ml-2 text-brand-text-muted">({formatRelativeTime(signal.createdAt)})</span>
+          </DetailRow>
+          <DetailRow icon={User} label="Reporter">
+            <span className="text-brand-text">{signal.reporter}</span>
+          </DetailRow>
+          <DetailRow icon={MapPin} label="Location">
+            <span className="text-brand-text">{signal.lat.toFixed(5)}, {signal.lng.toFixed(5)}</span>
+          </DetailRow>
+          <DetailRow icon={Hash} label="Signal ID">
+            <span className="font-mono text-xs text-brand-text-muted">{signal.ref}</span>
+          </DetailRow>
+        </div>
+
+        {isActive && (
+          <button
+            type="button"
+            onClick={() => onResolve(signal.id)}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-brand-success py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
+          >
+            <CheckCircle2 className="h-4 w-4" /> Resolve signal
+          </button>
+        )}
+      </div>
+    </div>
+  );
+});
+
+function DetailRow({
+  icon: Icon,
+  label,
+  children,
+}: {
+  icon: typeof Clock;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <Icon className="h-3.5 w-3.5 shrink-0 text-brand-text-muted" />
+      <span className="w-16 shrink-0 text-xs uppercase tracking-wide text-brand-text-muted">{label}</span>
+      <span className="min-w-0 flex-1 truncate">{children}</span>
     </div>
   );
 }

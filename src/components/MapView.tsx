@@ -8,6 +8,9 @@ import {
   Layers3,
   LocateFixed,
   MapPin,
+  Radar,
+  Radio,
+  ShieldAlert,
   SlidersHorizontal,
 } from "lucide-react";
 import maplibregl, {
@@ -24,6 +27,14 @@ import type {
 } from "geojson";
 import "maplibre-gl/dist/maplibre-gl.css";
 
+import {
+  formatRelativeTime,
+  formatTimestamp,
+  SQUARE_ONE_CENTER,
+  type DistressSignal,
+  type MapMode,
+} from "@/lib/distress";
+
 const TORONTO_CENTER: [number, number] = [-79.3832, 43.6532];
 const MAP_STYLE = "https://tiles.openfreemap.org/styles/fiord";
 
@@ -38,13 +49,31 @@ const LAYERS = {
   riskGlow: "high-risk-zones-glow",
   riskLabel: "high-risk-zones-label",
   riskOutline: "high-risk-zones-outline",
+  distressPast: "distress-past-points",
+  distressActiveHalo: "distress-active-halo",
+  distressActiveCore: "distress-active-core",
 } as const;
 
 const SOURCES = {
   crime: "crime-incidents",
   predictions: "crime-predictions",
   risk: "high-risk-zones",
+  distress: "distress-signals",
 } as const;
+
+const DISTRESS_LAYER_IDS = [
+  LAYERS.distressPast,
+  LAYERS.distressActiveHalo,
+  LAYERS.distressActiveCore,
+];
+
+type DistressPointProperties = {
+  reporter: string;
+  locationName: string;
+  category: string;
+  createdAt: string;
+  status: DistressSignal["status"];
+};
 
 type CrimePointRecord = {
   lat: number;
@@ -114,6 +143,28 @@ function toCrimeGeoJSON(
       properties: {
         offence: record.offence,
         date: record.date,
+      },
+    })),
+  };
+}
+
+function toDistressGeoJSON(
+  signals: DistressSignal[],
+): FeatureCollection<Point, DistressPointProperties> {
+  return {
+    type: "FeatureCollection",
+    features: signals.map((signal) => ({
+      type: "Feature",
+      geometry: {
+        type: "Point",
+        coordinates: [signal.lng, signal.lat],
+      },
+      properties: {
+        reporter: signal.reporter,
+        locationName: signal.locationName,
+        category: signal.category,
+        createdAt: signal.createdAt,
+        status: signal.status,
       },
     })),
   };
@@ -271,6 +322,7 @@ function showStyledPopup({
   eyebrow,
   title,
   detail,
+  eyebrowColor = "#fb7185",
 }: {
   map: MapLibreMap;
   lngLat: LngLatLike;
@@ -278,6 +330,7 @@ function showStyledPopup({
   eyebrow: string;
   title: string;
   detail: string;
+  eyebrowColor?: string;
 }) {
   const content = document.createElement("div");
   Object.assign(content.style, {
@@ -290,7 +343,7 @@ function showStyledPopup({
   const eyebrowElement = document.createElement("span");
   eyebrowElement.textContent = eyebrow;
   Object.assign(eyebrowElement.style, {
-    color: "#fb7185",
+    color: eyebrowColor,
     fontSize: "9px",
     fontWeight: "700",
     letterSpacing: "0.12em",
@@ -853,6 +906,63 @@ function addAnalysisLayers(
   );
 }
 
+function addDistressLayers(
+  map: MapLibreMap,
+  data: FeatureCollection<Point, DistressPointProperties>,
+) {
+  map.addSource(SOURCES.distress, { type: "geojson", data });
+
+  // Past (resolved) signals — calmer than the live pins, but still clearly
+  // legible so historical interactions read around the live signal.
+  map.addLayer({
+    id: LAYERS.distressPast,
+    type: "circle",
+    source: SOURCES.distress,
+    filter: ["==", ["get", "status"], "past"],
+    layout: { visibility: "none" },
+    paint: {
+      "circle-color": "#38bdf8",
+      "circle-opacity": 0.9,
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 5, 15, 8, 17, 11],
+      "circle-stroke-color": "#e0f2fe",
+      "circle-stroke-opacity": 0.9,
+      "circle-stroke-width": 1.4,
+    },
+  });
+
+  // Active signals — an animated halo (pulsed from the component) plus a bright
+  // solid core so live emergencies read with urgency.
+  map.addLayer({
+    id: LAYERS.distressActiveHalo,
+    type: "circle",
+    source: SOURCES.distress,
+    filter: ["==", ["get", "status"], "active"],
+    layout: { visibility: "none" },
+    paint: {
+      "circle-color": "#f43f5e",
+      "circle-opacity": 0.28,
+      "circle-radius": 18,
+      "circle-blur": 0.35,
+    },
+  });
+
+  map.addLayer({
+    id: LAYERS.distressActiveCore,
+    type: "circle",
+    source: SOURCES.distress,
+    filter: ["==", ["get", "status"], "active"],
+    layout: { visibility: "none" },
+    paint: {
+      "circle-color": "#f43f5e",
+      "circle-opacity": 0.95,
+      "circle-radius": ["interpolate", ["linear"], ["zoom"], 10, 6, 15, 10],
+      "circle-stroke-color": "#fff1f2",
+      "circle-stroke-opacity": 0.95,
+      "circle-stroke-width": 2,
+    },
+  });
+}
+
 function setLayerVisibility(
   map: MapLibreMap,
   layerIds: string[],
@@ -865,10 +975,17 @@ function setLayerVisibility(
   });
 }
 
-export default function MapView({ searchQuery }: { searchQuery: string }) {
+export default function MapView({
+  mapMode,
+  distressSignals,
+}: {
+  mapMode: MapMode;
+  distressSignals: DistressSignal[];
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const crimeRecordsRef = useRef<CrimePointRecord[]>([]);
+  const distressRef = useRef<DistressSignal[]>(distressSignals);
   const [dataReady, setDataReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [riskZoneCount, setRiskZoneCount] = useState(0);
@@ -886,7 +1003,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
       container: containerRef.current,
       style: MAP_STYLE,
       center: TORONTO_CENTER,
-      zoom: 11.15,
+      zoom: 12.5,
       pitch: 58,
       bearing: -22,
       minZoom: 8,
@@ -1016,6 +1133,41 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
           });
         });
 
+        addDistressLayers(map, toDistressGeoJSON(distressRef.current));
+
+        const showDistressPopup = (event: MapLayerMouseEvent) => {
+          const feature = event.features?.[0];
+          if (!feature) return;
+          const coordinates =
+            feature.geometry.type === "Point"
+              ? (feature.geometry.coordinates as [number, number])
+              : event.lngLat.toArray();
+          const props = feature.properties ?? {};
+          const isActive = props.status === "active";
+          const category = String(props.category ?? "Distress signal");
+          const locationName = String(props.locationName ?? "Unknown location");
+          const reporter = String(props.reporter ?? "Anonymous");
+          const when = props.createdAt
+            ? `${formatTimestamp(String(props.createdAt))} · ${formatRelativeTime(String(props.createdAt))}`
+            : "unknown time";
+
+          showStyledPopup({
+            map,
+            lngLat: coordinates,
+            offset: 14,
+            eyebrow: isActive ? "Active distress" : "Resolved signal",
+            eyebrowColor: isActive ? "#fb7185" : "#9ca3af",
+            title: category,
+            detail: `${locationName} · ${reporter} · ${when}`,
+          });
+        };
+
+        DISTRESS_LAYER_IDS.forEach((layerId) => {
+          map.on("mouseenter", layerId, showPointer);
+          map.on("mouseleave", layerId, clearPointer);
+          map.on("click", layerId, showDistressPopup);
+        });
+
         setDataReady(true);
       } catch (loadError) {
         if (abortController.signal.aborted) return;
@@ -1041,36 +1193,26 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   }, []);
 
   useEffect(() => {
-    if (!dataReady || !mapRef.current) return;
+    const map = mapRef.current;
+    if (!dataReady || !map) return;
 
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const filteredRecords = normalizedQuery
-      ? crimeRecordsRef.current.filter((record) =>
-          record.offence.toLowerCase().includes(normalizedQuery),
-        )
-      : crimeRecordsRef.current;
+    const crimeView = mapMode === "crime";
 
-    const source = mapRef.current.getSource(SOURCES.crime) as
-      | GeoJSONSource
-      | undefined;
-    source?.setData(toCrimeGeoJSON(filteredRecords));
-  }, [dataReady, searchQuery]);
-
-  useEffect(() => {
-    if (!dataReady || !mapRef.current) return;
-    setLayerVisibility(mapRef.current, [LAYERS.heatmap], visibility.heatmap);
+    // Crime analysis layers are visible only on the crime map, and only when
+    // their individual toggle is on. Distress signals never bleed into it.
+    setLayerVisibility(map, [LAYERS.heatmap], crimeView && visibility.heatmap);
     setLayerVisibility(
-      mapRef.current,
+      map,
       [LAYERS.historicalHeatmap],
-      visibility.historicalHeatmap,
+      crimeView && visibility.historicalHeatmap,
     );
     setLayerVisibility(
-      mapRef.current,
+      map,
       [LAYERS.pointHalo, LAYERS.points],
-      visibility.points,
+      crimeView && visibility.points,
     );
     setLayerVisibility(
-      mapRef.current,
+      map,
       [
         LAYERS.riskExtrusion,
         LAYERS.riskFill,
@@ -1078,14 +1220,68 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
         LAYERS.riskOutline,
         LAYERS.riskLabel,
       ],
-      visibility.riskZones,
+      crimeView && visibility.riskZones,
     );
-    setLayerVisibility(
-      mapRef.current,
-      [LAYERS.buildings],
-      visibility.buildings,
-    );
-  }, [dataReady, visibility]);
+
+    // Buildings are neutral basemap context, kept in both views.
+    setLayerVisibility(map, [LAYERS.buildings], visibility.buildings);
+
+    // Distress markers live only on the distress view.
+    setLayerVisibility(map, DISTRESS_LAYER_IDS, !crimeView);
+  }, [dataReady, visibility, mapMode]);
+
+  // Keep the distress source in sync with the shared realtime feed.
+  useEffect(() => {
+    distressRef.current = distressSignals;
+    const map = mapRef.current;
+    if (!dataReady || !map) return;
+    const source = map.getSource(SOURCES.distress) as GeoJSONSource | undefined;
+    source?.setData(toDistressGeoJSON(distressSignals));
+  }, [dataReady, distressSignals]);
+
+  // Frame the relevant area when the view switches.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!dataReady || !map) return;
+    if (mapMode === "distress") {
+      // Zoom into the live distress signals (Square One) at an angle — close
+      // enough that the 3D buildings render, but wide enough that the cluster
+      // of past interactions around the mall stays in frame.
+      map.easeTo({
+        center: SQUARE_ONE_CENTER,
+        zoom: 15.1,
+        pitch: 55,
+        bearing: -20,
+        duration: 1400,
+      });
+    } else {
+      map.easeTo({
+        center: TORONTO_CENTER,
+        zoom: 12.5,
+        pitch: 58,
+        bearing: -22,
+        duration: 1100,
+      });
+    }
+  }, [dataReady, mapMode]);
+
+  // Pulse the active-signal halo so live emergencies visibly throb.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!dataReady || !map || mapMode !== "distress") return;
+
+    let frame = 0;
+    const animate = () => {
+      if (map.getLayer(LAYERS.distressActiveHalo)) {
+        const t = (Math.sin(performance.now() / 480) + 1) / 2; // 0..1
+        map.setPaintProperty(LAYERS.distressActiveHalo, "circle-radius", 16 + t * 26);
+        map.setPaintProperty(LAYERS.distressActiveHalo, "circle-opacity", 0.32 - t * 0.26);
+      }
+      frame = requestAnimationFrame(animate);
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [dataReady, mapMode]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -1139,23 +1335,29 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   const resetView = () => {
     mapRef.current?.easeTo({
       center: TORONTO_CENTER,
-      zoom: 11.15,
+      zoom: 12.5,
       pitch: 58,
       bearing: -22,
       duration: 900,
     });
   };
 
+  const activeDistressCount = distressSignals.filter(
+    (signal) => signal.status === "active",
+  ).length;
+  const pastDistressCount = distressSignals.length - activeDistressCount;
+
   return (
     <div className="absolute inset-0 overflow-hidden bg-brand-bg">
-      <div ref={containerRef} className="h-full w-full" aria-label="Toronto crime density map" />
+      <div ref={containerRef} className="h-full w-full" aria-label="Toronto crime and distress map" />
 
+      {mapMode === "crime" && (
       <section className="map-analysis-panel no-scrollbar absolute left-4 top-20 z-10 max-h-[calc(100vh-12rem)] w-72 overflow-y-auto rounded-2xl border border-brand-border bg-brand-panel/95 shadow-2xl backdrop-blur-md">
         <div className="border-b border-brand-border px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-brand-primary/15 p-2 text-brand-primary">
-                <Flame className="h-4 w-4" />
+                <Radar className="h-4 w-4" />
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-brand-text">Predictive analysis</h2>
@@ -1212,21 +1414,80 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
           </button>
         </div>
       </section>
+      )}
 
-      <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full border border-brand-border bg-brand-panel/90 px-4 py-2 shadow-xl backdrop-blur-md">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Prediction</span>
-        <div className="prediction-heatmap-legend h-2 w-28 rounded-full" />
-        <div className="flex gap-3 text-[10px] text-brand-text-muted"><span>Low</span><span>High</span></div>
-        <span className="h-5 w-px bg-brand-border" />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">History</span>
-        <div className="historical-heatmap-legend h-2 w-20 rounded-full" />
-        <span className="h-5 w-px bg-brand-border" />
-        <span className="risk-zone-legend h-4 w-8" />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Raised risk zone</span>
-        <span className="h-5 w-px bg-brand-border" />
-        <span className="incident-point-legend h-3 w-3 rounded-full" />
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Reported incident</span>
-      </div>
+      {mapMode === "distress" && (
+      <section className="map-analysis-panel absolute left-4 top-20 z-10 w-72 overflow-hidden rounded-2xl border border-brand-border bg-brand-panel/95 shadow-2xl backdrop-blur-md">
+        <div className="border-b border-brand-border px-4 py-3">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <div className="rounded-lg bg-brand-primary/15 p-2 text-brand-primary">
+                <ShieldAlert className="h-4 w-4" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-brand-text">Distress signals</h2>
+                <p className="text-[11px] text-brand-text-muted">Live emergencies + resolved history</p>
+              </div>
+            </div>
+            <span className="relative flex h-2.5 w-2.5">
+              {activeDistressCount > 0 && (
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-primary opacity-75" />
+              )}
+              <span className={`relative inline-flex h-2.5 w-2.5 rounded-full ${activeDistressCount > 0 ? "bg-brand-primary" : "bg-brand-success"}`} />
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-4 p-4">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-xl border border-brand-primary/40 bg-brand-primary/10 p-3">
+              <span className="block text-lg font-semibold text-brand-primary">{activeDistressCount}</span>
+              <span className="text-[10px] uppercase tracking-wider text-brand-text-muted">Active now</span>
+            </div>
+            <div className="rounded-xl border border-brand-border bg-brand-bg/70 p-3">
+              <span className="block text-lg font-semibold text-brand-text">{pastDistressCount}</span>
+              <span className="text-[10px] uppercase tracking-wider text-brand-text-muted">Resolved</span>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 rounded-xl border border-brand-border bg-brand-bg/70 p-3 text-[11px] text-brand-text-muted">
+            <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
+            <span>Live signals stream in from Supabase in realtime and pin to Square One. Predictions and heatmaps stay off this view.</span>
+          </div>
+
+          <button type="button" onClick={resetView} className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-xs font-medium text-brand-text transition-colors hover:bg-brand-card">
+            <LocateFixed className="h-3.5 w-3.5" /> Reset Toronto view
+          </button>
+        </div>
+      </section>
+      )}
+
+      {mapMode === "crime" ? (
+        <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full border border-brand-border bg-brand-panel/90 px-4 py-2 shadow-xl backdrop-blur-md">
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Prediction</span>
+          <div className="prediction-heatmap-legend h-2 w-28 rounded-full" />
+          <div className="flex gap-3 text-[10px] text-brand-text-muted"><span>Low</span><span>High</span></div>
+          <span className="h-5 w-px bg-brand-border" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">History</span>
+          <div className="historical-heatmap-legend h-2 w-20 rounded-full" />
+          <span className="h-5 w-px bg-brand-border" />
+          <span className="risk-zone-legend h-4 w-8" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Raised risk zone</span>
+          <span className="h-5 w-px bg-brand-border" />
+          <span className="incident-point-legend h-3 w-3 rounded-full" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Reported incident</span>
+        </div>
+      ) : (
+        <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full border border-brand-border bg-brand-panel/90 px-4 py-2 shadow-xl backdrop-blur-md">
+          <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">
+            <span className="h-2.5 w-2.5 rounded-full bg-brand-primary shadow-[0_0_8px_2px_rgba(244,63,94,0.6)]" /> Active signal
+          </span>
+          <span className="h-5 w-px bg-brand-border" />
+          <span className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">
+            <span className="h-2.5 w-2.5 rounded-full bg-sky-400" /> Resolved signal
+          </span>
+        </div>
+      )}
 
       {!dataReady && !error && (
         <div className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center bg-brand-bg/45 backdrop-blur-[2px]">
