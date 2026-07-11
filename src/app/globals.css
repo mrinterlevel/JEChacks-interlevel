@@ -30,3 +30,104 @@ body {
   font-family: var(--font-sans), sans-serif;
 }
 
+.maplibregl-map {
+  font-family: var(--font-sans), sans-serif;
+}
+
+.maplibregl-ctrl-group,
+.maplibregl-ctrl-attrib {
+  border: 1px solid var(--color-brand-border);
+  background: color-mix(in srgb, var(--color-brand-panel) 94%, transparent) !important;
+  color: var(--color-brand-text-muted);
+}
+
+.maplibregl-ctrl-group button {
+  filter: invert(1) opacity(0.76);
+}
+
+.maplibregl-ctrl-scale {
+  border-color: var(--color-brand-text-muted);
+  background: color-mix(in srgb, var(--color-brand-panel) 80%, transparent);
+  color: var(--color-brand-text);
+}
+
+.maplibregl-popup-content {
+  min-width: 210px;
+  border: 1px solid var(--color-brand-border);
+  border-radius: 12px;
+  background: var(--color-brand-panel);
+  color: var(--color-brand-text);
+  box-shadow: 0 20px 45px rgb(0 0 0 / 35%);
+  padding: 14px 16px;
+}
+
+.maplibregl-popup-tip {
+  border-top-color: var(--color-brand-panel) !important;
+  border-bottom-color: var(--color-brand-panel) !important;
+}
+
+.maplibregl-popup-close-button {
+  color: var(--color-brand-text-muted);
+  padding: 5px 8px;
+}
+
+.crime-popup {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 8px;
+}
+
+.crime-popup strong {
+  font-size: 13px;
+}
+
+.crime-popup span:last-child {
+  color: var(--color-brand-text-muted);
+  font-size: 11px;
+}
+
+.crime-popup__eyebrow {
+  color: var(--color-brand-primary);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.map-range::-webkit-slider-thumb {
+  width: 14px;
+  height: 14px;
+  appearance: none;
+  border: 2px solid var(--color-brand-panel);
+  border-radius: 999px;
+  background: var(--color-brand-primary);
+  box-shadow: 0 0 0 1px var(--color-brand-primary);
+}
+
+.map-range::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--color-brand-panel);
+  border-radius: 999px;
+  background: var(--color-brand-primary);
+  box-shadow: 0 0 0 1px var(--color-brand-primary);
+}
+
+.heatmap-legend {
+  background: linear-gradient(90deg, #0ea5e9, #22d3ee, #facc15, #fb923c, #f43f5e, #be185d);
+}
+
+.risk-zone-legend {
+  transform: skewY(-12deg);
+  border: 2px solid #fff7ed;
+  background: rgb(244 63 94 / 32%);
+  box-shadow: 0 0 10px 3px rgb(244 63 94 / 55%);
+}
+
+@media (max-width: 900px) {
+  .map-analysis-panel {
+    top: 7.5rem;
+    width: 15rem;
+  }
+}
