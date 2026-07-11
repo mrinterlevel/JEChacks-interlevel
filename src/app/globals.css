@@ -51,22 +51,33 @@ body {
   color: var(--color-brand-text);
 }
 
-.maplibregl-popup-content {
+.crime-map-popup .maplibregl-popup-content {
   min-width: 210px;
   border: 1px solid var(--color-brand-border);
   border-radius: 12px;
-  background: var(--color-brand-panel);
-  color: var(--color-brand-text);
+  background: var(--color-brand-panel) !important;
+  color: var(--color-brand-text) !important;
   box-shadow: 0 20px 45px rgb(0 0 0 / 35%);
   padding: 14px 16px;
 }
 
-.maplibregl-popup-tip {
-  border-top-color: var(--color-brand-panel) !important;
+.crime-map-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip {
   border-bottom-color: var(--color-brand-panel) !important;
 }
 
-.maplibregl-popup-close-button {
+.crime-map-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip {
+  border-top-color: var(--color-brand-panel) !important;
+}
+
+.crime-map-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--color-brand-panel) !important;
+}
+
+.crime-map-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--color-brand-panel) !important;
+}
+
+.crime-map-popup .maplibregl-popup-close-button {
   color: var(--color-brand-text-muted);
   padding: 5px 8px;
 }
@@ -114,8 +125,12 @@ body {
   box-shadow: 0 0 0 1px var(--color-brand-primary);
 }
 
-.heatmap-legend {
-  background: linear-gradient(90deg, #0ea5e9, #22d3ee, #facc15, #fb923c, #f43f5e, #be185d);
+.prediction-heatmap-legend {
+  background: linear-gradient(90deg, #facc15, #fb923c, #f43f5e, #be185d);
+}
+
+.historical-heatmap-legend {
+  background: linear-gradient(90deg, #22d3ee, #0ea5e9, #4f46e5, #7e22ce);
 }
 
 .risk-zone-legend {
@@ -123,6 +138,12 @@ body {
   border: 2px solid #fff7ed;
   background: rgb(244 63 94 / 32%);
   box-shadow: 0 0 10px 3px rgb(244 63 94 / 55%);
+}
+
+.incident-point-legend {
+  border: 1px solid #fff1f2;
+  background: #fb7185;
+  box-shadow: 0 0 8px 3px rgb(251 113 133 / 65%);
 }
 
 @media (max-width: 900px) {

@@ -48,7 +48,7 @@ export default function Sidebar({ searchQuery, mapMode }: { searchQuery: string;
   useEffect(() => {
     // Initial fetch
     const fetchSignals = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('distress_signals')
         .select('*')
         .order('created_at', { ascending: false });
@@ -107,9 +107,9 @@ export default function Sidebar({ searchQuery, mapMode }: { searchQuery: string;
     if (!searchQuery) return true;
     const lowerQuery = searchQuery.toLowerCase();
     return (
-      signal.offence.toLowerCase().includes(lowerQuery) ||
+      signal.offence?.toLowerCase().includes(lowerQuery) ||
       signal.location_name.toLowerCase().includes(lowerQuery) ||
-      signal.event_unique_id.toLowerCase().includes(lowerQuery) ||
+      signal.event_unique_id?.toLowerCase().includes(lowerQuery) ||
       signal.description.toLowerCase().includes(lowerQuery)
     );
   });
