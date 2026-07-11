@@ -37,6 +37,7 @@ const LAYERS = {
 
 const SOURCES = {
   crime: "crime-incidents",
+  predictions: "crime-predictions",
   risk: "high-risk-zones",
 } as const;
 
@@ -51,6 +52,23 @@ type CrimePointProperties = {
   offence: string;
   date: string;
 };
+
+type PredictionRecord = {
+  name: string;
+  predicted: number;
+  risk: number;
+};
+
+type PredictionPointProperties = PredictionRecord;
+
+type NeighbourhoodProperties = {
+  AREA_DESC: string;
+};
+
+type NeighbourhoodCollection = FeatureCollection<
+  MultiPolygon,
+  NeighbourhoodProperties
+>;
 
 type RiskZoneProperties = {
   name: string;
@@ -91,6 +109,86 @@ function toCrimeGeoJSON(
         date: record.date,
       },
     })),
+  };
+}
+
+function getRingCentroid(ring: number[][]) {
+  let signedArea = 0;
+  let centroidX = 0;
+  let centroidY = 0;
+
+  for (let index = 0; index < ring.length - 1; index += 1) {
+    const [x1, y1] = ring[index];
+    const [x2, y2] = ring[index + 1];
+    const crossProduct = x1 * y2 - x2 * y1;
+    signedArea += crossProduct;
+    centroidX += (x1 + x2) * crossProduct;
+    centroidY += (y1 + y2) * crossProduct;
+  }
+
+  signedArea *= 0.5;
+  if (Math.abs(signedArea) < Number.EPSILON) return null;
+
+  return {
+    area: Math.abs(signedArea),
+    coordinates: [
+      centroidX / (6 * signedArea),
+      centroidY / (6 * signedArea),
+    ] as [number, number],
+  };
+}
+
+function getMultiPolygonCentroid(coordinates: number[][][][]) {
+  const polygonCentroids = coordinates
+    .map((polygon) => getRingCentroid(polygon[0]))
+    .filter((centroid): centroid is NonNullable<typeof centroid> => Boolean(centroid));
+
+  const totalArea = polygonCentroids.reduce(
+    (sum, centroid) => sum + centroid.area,
+    0,
+  );
+  if (totalArea === 0) return null;
+
+  return polygonCentroids.reduce<[number, number]>(
+    (weightedCenter, centroid) => [
+      weightedCenter[0] + centroid.coordinates[0] * (centroid.area / totalArea),
+      weightedCenter[1] + centroid.coordinates[1] * (centroid.area / totalArea),
+    ],
+    [0, 0],
+  );
+}
+
+function toPredictionGeoJSON(
+  predictions: PredictionRecord[],
+  neighbourhoods: NeighbourhoodCollection,
+): FeatureCollection<Point, PredictionPointProperties> {
+  const neighbourhoodByName = new Map(
+    neighbourhoods.features.map((feature) => [
+      feature.properties.AREA_DESC,
+      feature,
+    ]),
+  );
+
+  return {
+    type: "FeatureCollection",
+    features: predictions.flatMap((prediction, index) => {
+      const neighbourhood = neighbourhoodByName.get(prediction.name);
+      if (!neighbourhood) return [];
+
+      const coordinates = getMultiPolygonCentroid(
+        neighbourhood.geometry.coordinates,
+      );
+      if (!coordinates) return [];
+
+      return [
+        {
+          type: "Feature" as const,
+          id: index,
+          geometry: { type: "Point" as const, coordinates },
+          properties: prediction,
+        },
+      ];
+    }),
   };
 }
 
@@ -236,6 +334,7 @@ function configureSceneLighting(map: MapLibreMap) {
 function addAnalysisLayers(
   map: MapLibreMap,
   crimeData: FeatureCollection<Point, CrimePointProperties>,
+  predictionData: FeatureCollection<Point, PredictionPointProperties>,
   riskData: RiskZoneCollection,
 ) {
   const firstLabelLayer = findFirstLabelLayer(map);
@@ -252,14 +351,27 @@ function addAnalysisLayers(
     tolerance: 0.35,
   });
 
+  map.addSource(SOURCES.predictions, {
+    type: "geojson",
+    data: predictionData,
+  });
+
   map.addLayer(
     {
       id: LAYERS.heatmap,
       type: "heatmap",
-      source: SOURCES.crime,
+      source: SOURCES.predictions,
       maxzoom: 16,
       paint: {
-        "heatmap-weight": 1,
+        "heatmap-weight": [
+          "interpolate",
+          ["linear"],
+          ["get", "risk"],
+          0,
+          0,
+          1,
+          1,
+        ],
         "heatmap-intensity": [
           "interpolate",
           ["linear"],
@@ -577,16 +689,32 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
 
     map.on("load", async () => {
       try {
-        const [crimeResponse, riskResponse] = await Promise.all([
+        const [
+          crimeResponse,
+          predictionResponse,
+          neighbourhoodResponse,
+          riskResponse,
+        ] = await Promise.all([
           fetch("/crime_points.json", { signal: abortController.signal }),
+          fetch("/predictions.json", { signal: abortController.signal }),
+          fetch("/neighbourhoods.geojson", { signal: abortController.signal }),
           fetch("/high_risk_zones.json", { signal: abortController.signal }),
         ]);
 
-        if (!crimeResponse.ok || !riskResponse.ok) {
+        if (
+          !crimeResponse.ok ||
+          !predictionResponse.ok ||
+          !neighbourhoodResponse.ok ||
+          !riskResponse.ok
+        ) {
           throw new Error("One or more map datasets could not be loaded.");
         }
 
         const crimeRecords = (await crimeResponse.json()) as CrimePointRecord[];
+        const predictions =
+          (await predictionResponse.json()) as PredictionRecord[];
+        const neighbourhoods =
+          (await neighbourhoodResponse.json()) as NeighbourhoodCollection;
         const riskZones = (await riskResponse.json()) as RiskZoneCollection;
 
         if (abortController.signal.aborted) return;
@@ -605,7 +733,12 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
 
         configureSceneLighting(map);
         addBuildingLayer(map);
-        addAnalysisLayers(map, toCrimeGeoJSON(validCrimeRecords), riskZones);
+        addAnalysisLayers(
+          map,
+          toCrimeGeoJSON(validCrimeRecords),
+          toPredictionGeoJSON(predictions, neighbourhoods),
+          riskZones,
+        );
 
         const showPointer = () => {
           map.getCanvas().style.cursor = "pointer";
@@ -628,7 +761,11 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
           const offence = String(feature?.properties?.offence ?? "Incident");
           const date = String(feature?.properties?.date ?? "Unknown date");
 
-          new maplibregl.Popup({ closeButton: true, offset: 12 })
+          new maplibregl.Popup({
+            className: "crime-map-popup",
+            closeButton: true,
+            offset: 12,
+          })
             .setLngLat(coordinates)
             .setHTML(
               `<div class="crime-popup"><span class="crime-popup__eyebrow">Reported incident</span><strong>${escapeHtml(offence)}</strong><span>${escapeHtml(date)}</span></div>`,
@@ -646,7 +783,11 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
           const name = String(feature?.properties?.name ?? "High-risk zone");
           const risk = Number(feature?.properties?.risk ?? 0);
 
-          new maplibregl.Popup({ closeButton: true, offset: 8 })
+          new maplibregl.Popup({
+            className: "crime-map-popup",
+            closeButton: true,
+            offset: 8,
+          })
             .setLngLat(event.lngLat)
             .setHTML(
               `<div class="crime-popup"><span class="crime-popup__eyebrow">Predicted risk zone</span><strong>${escapeHtml(name)}</strong><span>${Math.round(risk * 100)}% relative risk score</span></div>`,
@@ -786,7 +927,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
     <div className="absolute inset-0 overflow-hidden bg-brand-bg">
       <div ref={containerRef} className="h-full w-full" aria-label="Toronto crime density map" />
 
-      <section className="map-analysis-panel absolute left-4 top-20 z-10 w-72 overflow-hidden rounded-2xl border border-brand-border bg-brand-panel/95 shadow-2xl backdrop-blur-md">
+      <section className="map-analysis-panel no-scrollbar absolute left-4 top-20 z-10 max-h-[calc(100vh-12rem)] w-72 overflow-y-auto rounded-2xl border border-brand-border bg-brand-panel/95 shadow-2xl backdrop-blur-md">
         <div className="border-b border-brand-border px-4 py-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
@@ -794,8 +935,8 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
                 <Flame className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-brand-text">Density analysis</h2>
-                <p className="text-[11px] text-brand-text-muted">Observed incidents + predicted risk</p>
+                <h2 className="text-sm font-semibold text-brand-text">Predictive analysis</h2>
+                <p className="text-[11px] text-brand-text-muted">Model forecast + reported incidents</p>
               </div>
             </div>
             <span className={`h-2.5 w-2.5 rounded-full ${dataReady ? "bg-brand-success" : "animate-pulse bg-brand-warning"}`} />
@@ -818,7 +959,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-brand-text-muted">
               <Layers3 className="h-3.5 w-3.5" /> Layers
             </p>
-            <LayerToggle icon={Flame} label="Incident heatmap" active={visibility.heatmap} onClick={() => toggleLayer("heatmap")} />
+            <LayerToggle icon={Flame} label="Predicted risk heatmap" active={visibility.heatmap} onClick={() => toggleLayer("heatmap")} />
             <LayerToggle icon={MapPin} label="Incident points" active={visibility.points} onClick={() => toggleLayer("points")} />
             <LayerToggle icon={SlidersHorizontal} label="Predicted risk zones" active={visibility.riskZones} onClick={() => toggleLayer("riskZones")} />
             <LayerToggle icon={Building2} label="3D buildings" active={visibility.buildings} onClick={() => toggleLayer("buildings")} />
@@ -840,7 +981,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
       </section>
 
       <div className="pointer-events-none absolute bottom-5 left-1/2 z-10 flex -translate-x-1/2 items-center gap-3 rounded-full border border-brand-border bg-brand-panel/90 px-4 py-2 shadow-xl backdrop-blur-md">
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Density</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Forecast</span>
         <div className="heatmap-legend h-2 w-32 rounded-full" />
         <div className="flex gap-3 text-[10px] text-brand-text-muted"><span>Low</span><span>High</span></div>
         <span className="h-5 w-px bg-brand-border" />

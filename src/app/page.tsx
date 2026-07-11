@@ -23,8 +23,13 @@ export default function Home() {
   return (
     <main className="relative w-full h-screen overflow-hidden">
       <MapView searchQuery={searchQuery} />
-      <TopBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-      <Sidebar searchQuery={searchQuery} />
+      <TopBar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        mapMode={mapMode}
+        onModeChange={setMapMode}
+      />
+      <Sidebar searchQuery={searchQuery} mapMode={mapMode} />
     </main>
   );
 }
