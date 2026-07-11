@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Building2,
   Flame,
+  Info,
   Layers3,
   LocateFixed,
   MapPin,
@@ -15,6 +16,7 @@ import maplibregl, {
   MapLayerMouseEvent,
 } from "maplibre-gl";
 import type { LngLatLike } from "maplibre-gl";
+import type { ExpressionSpecification } from "@maplibre/maplibre-gl-style-spec";
 import type {
   FeatureCollection,
   MultiPolygon,
@@ -195,6 +197,38 @@ function toPredictionGeoJSON(
       ];
     }),
   };
+}
+
+function predictionRadiusExpression(
+  baseRadius: number,
+): ExpressionSpecification {
+  return [
+    "*",
+    [
+      "interpolate",
+      ["linear"],
+      ["zoom"],
+      8,
+      baseRadius * 0.55,
+      12,
+      baseRadius,
+      15,
+      baseRadius * 1.4,
+    ],
+    [
+      "interpolate",
+      ["linear"],
+      ["get", "risk"],
+      0,
+      0.6,
+      0.5,
+      0.95,
+      0.75,
+      1.3,
+      1,
+      1.75,
+    ],
+  ] as ExpressionSpecification;
 }
 
 function prepareRiskZones(data: RiskZoneCollection): RiskZoneCollection {
@@ -507,9 +541,13 @@ function addAnalysisLayers(
           ["linear"],
           ["get", "risk"],
           0,
-          0,
+          0.05,
+          0.5,
+          0.6,
+          0.75,
+          1.25,
           1,
-          1,
+          2.1,
         ],
         "heatmap-intensity": [
           "interpolate",
@@ -522,17 +560,7 @@ function addAnalysisLayers(
           15,
           3.25,
         ],
-        "heatmap-radius": [
-          "interpolate",
-          ["linear"],
-          ["zoom"],
-          8,
-          36,
-          12,
-          65,
-          15,
-          91,
-        ],
+        "heatmap-radius": predictionRadiusExpression(65),
         "heatmap-color": [
           "interpolate",
           ["linear"],
@@ -845,7 +873,6 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   const crimeRecordsRef = useRef<CrimePointRecord[]>([]);
   const [dataReady, setDataReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [incidentCount, setIncidentCount] = useState(0);
   const [riskZoneCount, setRiskZoneCount] = useState(0);
   const [visibility, setVisibility] =
     useState<LayerVisibility>(INITIAL_VISIBILITY);
@@ -929,7 +956,6 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
         );
 
         crimeRecordsRef.current = validCrimeRecords;
-        setIncidentCount(validCrimeRecords.length);
         setRiskZoneCount(riskZones.features.length);
 
         configureSceneLighting(map);
@@ -1030,7 +1056,6 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
       | GeoJSONSource
       | undefined;
     source?.setData(toCrimeGeoJSON(filteredRecords));
-    setIncidentCount(filteredRecords.length);
   }, [dataReady, searchQuery]);
 
   useEffect(() => {
@@ -1068,17 +1093,11 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
     const map = mapRef.current;
     if (!dataReady || !map?.getLayer(LAYERS.heatmap)) return;
 
-    map.setPaintProperty(LAYERS.heatmap, "heatmap-radius", [
-      "interpolate",
-      ["linear"],
-      ["zoom"],
-      8,
-      Math.max(8, radius * 0.55),
-      12,
-      radius,
-      15,
-      radius * 1.4,
-    ]);
+    map.setPaintProperty(
+      LAYERS.heatmap,
+      "heatmap-radius",
+      predictionRadiusExpression(radius),
+    );
   }, [dataReady, radius]);
 
   useEffect(() => {
@@ -1151,9 +1170,18 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
 
         <div className="space-y-4 p-4">
           <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-xl border border-brand-border bg-brand-bg/70 p-3">
-              <span className="block text-lg font-semibold text-brand-text">{incidentCount.toLocaleString()}</span>
-              <span className="text-[10px] uppercase tracking-wider text-brand-text-muted">Visible incidents</span>
+            <div className="group rounded-xl border border-brand-border bg-brand-bg/70 p-3 focus-within:border-brand-primary/60 hover:border-brand-primary/60">
+              <div className="flex items-start justify-between gap-2">
+                <span className="block text-sm font-semibold leading-tight text-brand-text">Trained off ~475,000 incidents</span>
+                <button type="button" aria-label="About the training and displayed incident data" className="shrink-0 rounded-full text-brand-text-muted outline-none transition-colors hover:text-brand-primary focus-visible:text-brand-primary">
+                  <Info className="h-4 w-4" />
+                </button>
+              </div>
+              <div role="tooltip" className="grid grid-rows-[0fr] transition-all duration-200 group-hover:mt-2 group-hover:grid-rows-[1fr] group-focus-within:mt-2 group-focus-within:grid-rows-[1fr]">
+                <p className="overflow-hidden text-[10px] leading-relaxed text-brand-text-muted">
+                  The model was trained on approximately 475,000 historical incidents. The 5,000 reported incidents shown on this map are a representative sample of the full dataset.
+                </p>
+              </div>
             </div>
             <div className="rounded-xl border border-brand-border bg-brand-bg/70 p-3">
               <span className="block text-lg font-semibold text-brand-text">{riskZoneCount}</span>
