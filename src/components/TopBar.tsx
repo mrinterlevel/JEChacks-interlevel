@@ -5,10 +5,14 @@ import { Search, Map as MapIcon, Filter, Calendar, CheckCircle2 } from 'lucide-r
 
 export default function TopBar({ 
   searchQuery, 
-  onSearchChange 
+  onSearchChange,
+  mapMode,
+  onModeChange
 }: { 
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  mapMode: 'live' | 'heatmap';
+  onModeChange: (mode: 'live' | 'heatmap') => void;
 }) {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
@@ -18,6 +22,26 @@ export default function TopBar({
       <div className="flex items-center gap-2 bg-brand-panel text-white px-4 py-2 rounded-full shadow-lg border border-brand-border">
         <MapIcon className="w-5 h-5 text-brand-text-muted" />
         <span className="font-semibold text-sm tracking-widest text-brand-text">CRIMEMAP</span>
+      </div>
+
+      {/* Mode Toggle */}
+      <div className="flex bg-brand-panel p-1 rounded-full shadow-lg border border-brand-border">
+        <button 
+          onClick={() => onModeChange('live')}
+          className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+            mapMode === 'live' ? 'bg-brand-primary text-white' : 'text-brand-text-muted hover:text-white'
+          }`}
+        >
+          Live Distress
+        </button>
+        <button 
+          onClick={() => onModeChange('heatmap')}
+          className={`px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+            mapMode === 'heatmap' ? 'bg-brand-primary text-white' : 'text-brand-text-muted hover:text-white'
+          }`}
+        >
+          Crime Heatmap
+        </button>
       </div>
 
       {/* Search Bar */}

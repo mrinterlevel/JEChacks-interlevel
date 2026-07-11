@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AlertCircle, Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+
+import { supabase } from '@/lib/supabase';
 
 export type DistressSignal = {
   id: string;
@@ -10,106 +12,98 @@ export type DistressSignal = {
   severity: 'high' | 'medium' | 'low';
   description: string;
   
-  // Extended fields based on Police Data Portal
-  event_unique_id: string;
-  report_date: string;
-  occ_date: string;
-  report_year: string;
-  report_month: string;
-  report_day: string;
-  report_doy: string;
-  report_dow: string;
-  report_hour: string;
-  occ_year: string;
-  occ_month: string;
-  occ_day: string;
-  occ_doy: string;
-  occ_dow: string;
-  occ_hour: string;
-  division: string;
-  ucr_code: string;
-  ucr_ext: string;
-  offence: string;
-  neighbourhood_158: string;
-  hood_140: string;
-  neighbourhood_140: string;
-  long_wgs84: string;
-  lat_wgs84: string;
+  // Extended fields based on Police Data Portal (optional for live signals)
+  event_unique_id?: string;
+  report_date?: string;
+  occ_date?: string;
+  report_year?: string;
+  report_month?: string;
+  report_day?: string;
+  report_doy?: string;
+  report_dow?: string;
+  report_hour?: string;
+  occ_year?: string;
+  occ_month?: string;
+  occ_day?: string;
+  occ_doy?: string;
+  occ_dow?: string;
+  occ_hour?: string;
+  division?: string;
+  ucr_code?: string;
+  ucr_ext?: string;
+  offence?: string;
+  neighbourhood_158?: string;
+  hood_140?: string;
+  neighbourhood_140?: string;
+  long_wgs84?: string;
+  lat_wgs84?: string;
 };
 
-const dummySignals: DistressSignal[] = [
-  {
-    id: '471792',
-    location_name: 'Annex (95)',
-    timestamp: '2026-03-06 12:00 AM',
-    severity: 'high',
-    description: 'Report of armed robbery in progress at local store.',
-    event_unique_id: 'GO-2026463122',
-    report_date: '3/6/26, 12:00 AM',
-    occ_date: '2/19/26, 12:00 AM',
-    report_year: '2026',
-    report_month: 'March',
-    report_day: '6',
-    report_doy: '65',
-    report_dow: 'Friday',
-    report_hour: '13',
-    occ_year: '2026',
-    occ_month: 'February',
-    occ_day: '19',
-    occ_doy: '50',
-    occ_dow: 'Thursday',
-    occ_hour: '19',
-    division: 'D53',
-    ucr_code: '2120',
-    ucr_ext: '200',
-    offence: 'B&E',
-    neighbourhood_158: 'Annex (95)',
-    hood_140: '095',
-    neighbourhood_140: 'Annex (95)',
-    long_wgs84: '-79.396019',
-    lat_wgs84: '43.673347',
-  },
-  {
-    id: '471793',
-    location_name: 'Church-Yonge Corridor',
-    timestamp: '2026-03-05 14:30',
-    severity: 'low',
-    description: 'Vandalism, graffiti on public property.',
-    event_unique_id: 'GO-2026463123',
-    report_date: '3/5/26, 2:30 PM',
-    occ_date: '3/5/26, 2:00 PM',
-    report_year: '2026',
-    report_month: 'March',
-    report_day: '5',
-    report_doy: '64',
-    report_dow: 'Thursday',
-    report_hour: '14',
-    occ_year: '2026',
-    occ_month: 'March',
-    occ_day: '5',
-    occ_doy: '64',
-    occ_dow: 'Thursday',
-    occ_hour: '14',
-    division: 'D51',
-    ucr_code: '1430',
-    ucr_ext: '100',
-    offence: 'Mischief',
-    neighbourhood_158: 'Church-Yonge Corridor (75)',
-    hood_140: '075',
-    neighbourhood_140: 'Church-Yonge Corridor (75)',
-    long_wgs84: '-79.381012',
-    lat_wgs84: '43.655211',
-  }
-];
+// ... keep dummySignals here if we still want fallback data, but let's just use state ...
 
-export default function Sidebar({ searchQuery }: { searchQuery: string }) {
+export default function Sidebar({ searchQuery, mapMode }: { searchQuery: string; mapMode: 'live' | 'heatmap' }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [liveSignals, setLiveSignals] = useState<DistressSignal[]>([]);
+
+  useEffect(() => {
+    // Initial fetch
+    const fetchSignals = async () => {
+      const { data, error } = await supabase
+        .from('distress_signals')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (data) {
+        const mapped = data.map(row => ({
+          id: row.id,
+          location_name: 'Live Mobile Signal',
+          timestamp: new Date(row.created_at).toLocaleString(),
+          severity: 'high' as const,
+          description: `Emergency triggered by ${row.name || 'Anonymous'}. Coordinates: ${row.lat}, ${row.lng}`,
+          event_unique_id: `LIVE-${row.id.substring(0, 8)}`,
+          offence: 'Active Distress Signal',
+          lat_wgs84: String(row.lat),
+          long_wgs84: String(row.lng),
+          report_date: new Date(row.created_at).toLocaleString()
+        }));
+        setLiveSignals(mapped);
+      }
+    };
+
+    fetchSignals();
+
+    // Subscribe to realtime changes
+    const channel = supabase.channel('public:distress_signals')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'distress_signals' }, payload => {
+        const row = payload.new;
+        const newSignal: DistressSignal = {
+          id: row.id,
+          location_name: 'Live Mobile Signal',
+          timestamp: new Date(row.created_at).toLocaleString(),
+          severity: 'high',
+          description: `Emergency triggered by ${row.name || 'Anonymous'}. Coordinates: ${row.lat}, ${row.lng}`,
+          event_unique_id: `LIVE-${row.id.substring(0, 8)}`,
+          offence: 'Active Distress Signal',
+          lat_wgs84: String(row.lat),
+          long_wgs84: String(row.lng),
+          report_date: new Date(row.created_at).toLocaleString()
+        };
+        setLiveSignals(prev => [newSignal, ...prev]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  if (mapMode === 'heatmap') return null;
 
   const toggleExpand = (id: string) => {
     setExpandedId(prev => prev === id ? null : id);
   };
 
-  const filteredSignals = dummySignals.filter(signal => {
+  const filteredSignals = liveSignals.filter(signal => {
     if (!searchQuery) return true;
     const lowerQuery = searchQuery.toLowerCase();
     return (
