@@ -136,6 +136,12 @@ body {
   box-shadow: 0 0 10px 3px rgb(244 63 94 / 55%);
 }
 
+.incident-point-legend {
+  border: 1px solid #fff1f2;
+  background: #fb7185;
+  box-shadow: 0 0 8px 3px rgb(251 113 133 / 65%);
+}
+
 @media (max-width: 900px) {
   .map-analysis-panel {
     top: 7.5rem;

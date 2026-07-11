@@ -27,6 +27,7 @@ const MAP_STYLE = "https://tiles.openfreemap.org/styles/fiord";
 const LAYERS = {
   buildings: "toronto-3d-buildings",
   heatmap: "crime-density-heatmap",
+  pointHalo: "crime-incident-point-halo",
   points: "crime-incident-points",
   riskExtrusion: "high-risk-zones-extrusion",
   riskFill: "high-risk-zones-fill",
@@ -388,11 +389,11 @@ function addAnalysisLayers(
           ["linear"],
           ["zoom"],
           8,
-          11,
+          22,
           12,
-          20,
+          40,
           15,
-          28,
+          56,
         ],
         "heatmap-color": [
           "interpolate",
@@ -418,9 +419,9 @@ function addAnalysisLayers(
           ["linear"],
           ["zoom"],
           8,
-          0.8,
+          0.9,
           13,
-          0.72,
+          0.81,
           16,
           0,
         ],
@@ -581,31 +582,95 @@ function addAnalysisLayers(
 
   map.addLayer(
     {
-      id: LAYERS.points,
+      id: LAYERS.pointHalo,
       type: "circle",
       source: SOURCES.crime,
-      minzoom: 12.5,
+      minzoom: 10,
       paint: {
-        "circle-color": "#fb7185",
+        "circle-blur": 0.8,
+        "circle-color": [
+          "case",
+          [">=", ["index-of", "Firearm", ["get", "offence"]], 0],
+          "#c084fc",
+          [">=", ["index-of", "Robbery", ["get", "offence"]], 0],
+          "#fb7185",
+          [">=", ["index-of", "Assault", ["get", "offence"]], 0],
+          "#fb923c",
+          [">=", ["index-of", "Theft", ["get", "offence"]], 0],
+          "#38bdf8",
+          [">=", ["index-of", "B&E", ["get", "offence"]], 0],
+          "#facc15",
+          "#f472b6",
+        ],
         "circle-opacity": [
           "interpolate",
           ["linear"],
           ["zoom"],
-          12.5,
-          0,
-          14,
-          0.78,
+          10,
+          0.22,
+          13,
+          0.38,
           17,
-          0.92,
+          0.28,
         ],
         "circle-radius": [
           "interpolate",
           ["linear"],
           ["zoom"],
+          10,
+          4,
+          14,
+          10,
+          18,
+          17,
+        ],
+      },
+    },
+    firstLabelLayer,
+  );
+
+  map.addLayer(
+    {
+      id: LAYERS.points,
+      type: "circle",
+      source: SOURCES.crime,
+      minzoom: 10,
+      paint: {
+        "circle-color": [
+          "case",
+          [">=", ["index-of", "Firearm", ["get", "offence"]], 0],
+          "#c084fc",
+          [">=", ["index-of", "Robbery", ["get", "offence"]], 0],
+          "#fb7185",
+          [">=", ["index-of", "Assault", ["get", "offence"]], 0],
+          "#fb923c",
+          [">=", ["index-of", "Theft", ["get", "offence"]], 0],
+          "#38bdf8",
+          [">=", ["index-of", "B&E", ["get", "offence"]], 0],
+          "#facc15",
+          "#f472b6",
+        ],
+        "circle-opacity": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          10,
+          0.48,
           12.5,
-          2,
-          15,
-          4.5,
+          0.72,
+          17,
+          0.96,
+        ],
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+          10,
+          1.8,
+          13,
+          3.2,
+          16,
+          5.5,
           18,
           8,
         ],
@@ -615,10 +680,10 @@ function addAnalysisLayers(
           "interpolate",
           ["linear"],
           ["zoom"],
-          13,
-          0.5,
+          10,
+          0.6,
           17,
-          1.5,
+          1.8,
         ],
       },
     },
@@ -648,9 +713,9 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   const [riskZoneCount, setRiskZoneCount] = useState(0);
   const [visibility, setVisibility] =
     useState<LayerVisibility>(INITIAL_VISIBILITY);
-  const [radius, setRadius] = useState(20);
+  const [radius, setRadius] = useState(40);
   const [intensity, setIntensity] = useState(1.25);
-  const [opacity, setOpacity] = useState(0.8);
+  const [opacity, setOpacity] = useState(0.9);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -839,7 +904,11 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   useEffect(() => {
     if (!dataReady || !mapRef.current) return;
     setLayerVisibility(mapRef.current, [LAYERS.heatmap], visibility.heatmap);
-    setLayerVisibility(mapRef.current, [LAYERS.points], visibility.points);
+    setLayerVisibility(
+      mapRef.current,
+      [LAYERS.pointHalo, LAYERS.points],
+      visibility.points,
+    );
     setLayerVisibility(
       mapRef.current,
       [
@@ -987,6 +1056,9 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
         <span className="h-5 w-px bg-brand-border" />
         <span className="risk-zone-legend h-4 w-8" />
         <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Raised risk zone</span>
+        <span className="h-5 w-px bg-brand-border" />
+        <span className="incident-point-legend h-3 w-3 rounded-full" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-brand-text-muted">Reported incident</span>
       </div>
 
       {!dataReady && !error && (
