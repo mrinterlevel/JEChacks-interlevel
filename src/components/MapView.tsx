@@ -527,11 +527,11 @@ function addAnalysisLayers(
           ["linear"],
           ["zoom"],
           8,
-          22,
+          36,
           12,
-          40,
+          65,
           15,
-          56,
+          91,
         ],
         "heatmap-color": [
           "interpolate",
@@ -849,7 +849,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   const [riskZoneCount, setRiskZoneCount] = useState(0);
   const [visibility, setVisibility] =
     useState<LayerVisibility>(INITIAL_VISIBILITY);
-  const [radius, setRadius] = useState(40);
+  const [radius, setRadius] = useState(65);
   const [intensity, setIntensity] = useState(1.25);
   const [opacity, setOpacity] = useState(0.9);
 
@@ -1176,7 +1176,7 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
             <p className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-brand-text-muted">
               <SlidersHorizontal className="h-3.5 w-3.5" /> Heatmap tuning
             </p>
-            <RangeControl label="Radius" value={radius} min={12} max={60} step={1} display={`${radius}px`} onChange={setRadius} />
+            <RangeControl label="Radius" value={radius} min={12} max={100} step={1} display={`${radius}px`} onChange={setRadius} />
             <RangeControl label="Intensity" value={intensity} min={0.5} max={3} step={0.05} display={`${intensity.toFixed(2)}×`} onChange={setIntensity} />
             <RangeControl label="Opacity" value={opacity} min={0.2} max={1} step={0.02} display={`${Math.round(opacity * 100)}%`} onChange={setOpacity} />
           </div>
