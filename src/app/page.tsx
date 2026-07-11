@@ -4,6 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import TopBar from "@/components/TopBar";
 import Sidebar from "@/components/Sidebar";
+import { useDistressSignals, type MapMode } from "@/lib/distress";
 
 const MapView = dynamic(() => import("@/components/MapView"), {
   ssr: false,
@@ -14,22 +15,33 @@ const MapView = dynamic(() => import("@/components/MapView"), {
   ),
 });
 
-export type MapMode = 'live' | 'heatmap';
-
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [mapMode, setMapMode] = useState<MapMode>('live');
+  const [mapMode, setMapMode] = useState<MapMode>("crime");
+  const { signals: distressSignals, resolveSignal } = useDistressSignals();
+
+  const activeCount = distressSignals.filter((signal) => signal.status === "active").length;
 
   return (
     <main className="relative w-full h-screen overflow-hidden">
-      <MapView searchQuery={searchQuery} />
+      <MapView
+        searchQuery={searchQuery}
+        mapMode={mapMode}
+        distressSignals={distressSignals}
+      />
       <TopBar
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         mapMode={mapMode}
         onModeChange={setMapMode}
+        activeCount={activeCount}
       />
-      <Sidebar searchQuery={searchQuery} mapMode={mapMode} />
+      <Sidebar
+        searchQuery={searchQuery}
+        mapMode={mapMode}
+        distressSignals={distressSignals}
+        onResolve={resolveSignal}
+      />
     </main>
   );
 }

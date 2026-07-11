@@ -146,6 +146,21 @@ body {
   box-shadow: 0 0 8px 3px rgb(251 113 133 / 65%);
 }
 
+@keyframes distress-enter {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-distress-enter {
+  animation: distress-enter 0.35s ease-out;
+}
+
 @media (max-width: 900px) {
   .map-analysis-panel {
     top: 7.5rem;
