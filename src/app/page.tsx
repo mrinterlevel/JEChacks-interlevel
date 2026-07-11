@@ -16,7 +16,6 @@ const MapView = dynamic(() => import("@/components/MapView"), {
 });
 
 export default function Home() {
-  const [searchQuery, setSearchQuery] = useState("");
   const [mapMode, setMapMode] = useState<MapMode>("crime");
   const { signals: distressSignals, resolveSignal } = useDistressSignals();
 
@@ -24,20 +23,13 @@ export default function Home() {
 
   return (
     <main className="relative w-full h-screen overflow-hidden">
-      <MapView
-        searchQuery={searchQuery}
-        mapMode={mapMode}
-        distressSignals={distressSignals}
-      />
+      <MapView mapMode={mapMode} distressSignals={distressSignals} />
       <TopBar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
         mapMode={mapMode}
         onModeChange={setMapMode}
         activeCount={activeCount}
       />
       <Sidebar
-        searchQuery={searchQuery}
         mapMode={mapMode}
         distressSignals={distressSignals}
         onResolve={resolveSignal}

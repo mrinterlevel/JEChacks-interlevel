@@ -8,6 +8,7 @@ import {
   Layers3,
   LocateFixed,
   MapPin,
+  Radar,
   Radio,
   ShieldAlert,
   SlidersHorizontal,
@@ -975,11 +976,9 @@ function setLayerVisibility(
 }
 
 export default function MapView({
-  searchQuery,
   mapMode,
   distressSignals,
 }: {
-  searchQuery: string;
   mapMode: MapMode;
   distressSignals: DistressSignal[];
 }) {
@@ -1004,7 +1003,7 @@ export default function MapView({
       container: containerRef.current,
       style: MAP_STYLE,
       center: TORONTO_CENTER,
-      zoom: 11.15,
+      zoom: 12.5,
       pitch: 58,
       bearing: -22,
       minZoom: 8,
@@ -1194,22 +1193,6 @@ export default function MapView({
   }, []);
 
   useEffect(() => {
-    if (!dataReady || !mapRef.current) return;
-
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-    const filteredRecords = normalizedQuery
-      ? crimeRecordsRef.current.filter((record) =>
-          record.offence.toLowerCase().includes(normalizedQuery),
-        )
-      : crimeRecordsRef.current;
-
-    const source = mapRef.current.getSource(SOURCES.crime) as
-      | GeoJSONSource
-      | undefined;
-    source?.setData(toCrimeGeoJSON(filteredRecords));
-  }, [dataReady, searchQuery]);
-
-  useEffect(() => {
     const map = mapRef.current;
     if (!dataReady || !map) return;
 
@@ -1274,7 +1257,7 @@ export default function MapView({
     } else {
       map.easeTo({
         center: TORONTO_CENTER,
-        zoom: 11.15,
+        zoom: 12.5,
         pitch: 58,
         bearing: -22,
         duration: 1100,
@@ -1352,7 +1335,7 @@ export default function MapView({
   const resetView = () => {
     mapRef.current?.easeTo({
       center: TORONTO_CENTER,
-      zoom: 11.15,
+      zoom: 12.5,
       pitch: 58,
       bearing: -22,
       duration: 900,
@@ -1374,7 +1357,7 @@ export default function MapView({
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="rounded-lg bg-brand-primary/15 p-2 text-brand-primary">
-                <Flame className="h-4 w-4" />
+                <Radar className="h-4 w-4" />
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-brand-text">Predictive analysis</h2>

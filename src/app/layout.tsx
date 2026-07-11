@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "CrimeMap | Toronto Public Safety Intelligence",
+  title: "CrimeWatcher | Toronto Public Safety Intelligence",
   description: "Interactive Toronto incident density and predicted risk map.",
 };
 

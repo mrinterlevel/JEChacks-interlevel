@@ -11,12 +11,10 @@ import {
 } from '@/lib/distress';
 
 export default function Sidebar({
-  searchQuery,
   mapMode,
   distressSignals,
   onResolve,
 }: {
-  searchQuery: string;
   mapMode: MapMode;
   distressSignals: DistressSignal[];
   onResolve: (id: string) => void;
@@ -24,18 +22,7 @@ export default function Sidebar({
   // The distress feed only belongs on the distress view.
   if (mapMode !== 'distress') return null;
 
-  const query = searchQuery.trim().toLowerCase();
-  const filteredSignals = distressSignals.filter((signal) => {
-    if (!query) return true;
-    return (
-      signal.category.toLowerCase().includes(query) ||
-      signal.locationName.toLowerCase().includes(query) ||
-      signal.reporter.toLowerCase().includes(query) ||
-      signal.ref.toLowerCase().includes(query)
-    );
-  });
-
-  const activeCount = filteredSignals.filter((signal) => signal.status === 'active').length;
+  const activeCount = distressSignals.filter((signal) => signal.status === 'active').length;
 
   return (
     <div className="absolute right-4 top-20 bottom-4 w-96 flex flex-col gap-3 z-10 overflow-y-auto no-scrollbar pointer-events-none">
@@ -50,25 +37,25 @@ export default function Sidebar({
           <span className="text-sm font-semibold text-brand-text">Distress signals</span>
         </div>
         <span className="text-xs text-brand-text-muted">
-          <span className="font-semibold text-brand-primary">{activeCount}</span> active · {filteredSignals.length} total
+          <span className="font-semibold text-brand-primary">{activeCount}</span> active · {distressSignals.length} total
         </span>
       </div>
 
-      {filteredSignals.length === 0 && (
+      {distressSignals.length === 0 && (
         <div className="shrink-0 pointer-events-auto rounded-xl border border-brand-border bg-brand-panel/95 px-4 py-6 text-center text-sm text-brand-text-muted shadow-2xl backdrop-blur-md">
-          No distress signals match your search.
+          No distress signals to show.
         </div>
       )}
 
-      {filteredSignals.map((signal) => (
+      {distressSignals.map((signal) => (
         <SignalCard key={signal.id} signal={signal} onResolve={onResolve} />
       ))}
     </div>
   );
 }
 
-// Memoized so resolving one signal (or typing in search) doesn't re-render all
-// ~800 cards — only the card whose signal object actually changed re-renders.
+// Memoized so resolving one signal doesn't re-render all ~800 cards — only the
+// card whose signal object actually changed re-renders.
 const SignalCard = React.memo(function SignalCard({
   signal,
   onResolve,
