@@ -265,22 +265,22 @@ function addAnalysisLayers(
           ["linear"],
           ["zoom"],
           8,
-          0.7,
+          0.65,
           12,
-          1.35,
+          1.25,
           15,
-          2.2,
+          2.06,
         ],
         "heatmap-radius": [
           "interpolate",
           ["linear"],
           ["zoom"],
           8,
-          18,
+          11,
           12,
-          34,
+          20,
           15,
-          48,
+          28,
         ],
         "heatmap-color": [
           "interpolate",
@@ -306,9 +306,9 @@ function addAnalysisLayers(
           ["linear"],
           ["zoom"],
           8,
-          0.85,
+          0.8,
           13,
-          0.78,
+          0.72,
           16,
           0,
         ],
@@ -536,9 +536,9 @@ export default function MapView({ searchQuery }: { searchQuery: string }) {
   const [riskZoneCount, setRiskZoneCount] = useState(0);
   const [visibility, setVisibility] =
     useState<LayerVisibility>(INITIAL_VISIBILITY);
-  const [radius, setRadius] = useState(34);
-  const [intensity, setIntensity] = useState(1.35);
-  const [opacity, setOpacity] = useState(0.74);
+  const [radius, setRadius] = useState(20);
+  const [intensity, setIntensity] = useState(1.25);
+  const [opacity, setOpacity] = useState(0.8);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
