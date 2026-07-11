@@ -2,7 +2,7 @@
   {
     "name": "Mimico-Queensway (160)",
     "predicted": 83.3,
-    "risk": 1.0
+    "risk": 0.98
   },
   {
     "name": "West Humber-Clairville (1)",
@@ -65,11 +65,6 @@
     "risk": 0.454
   },
   {
-    "name": "St Lawrence-East Bayfront-The Islands (166)",
-    "predicted": 38.8,
-    "risk": 0.4296
-  },
-  {
     "name": "Church-Wellesley (167)",
     "predicted": 36.9,
     "risk": 0.4052
@@ -88,11 +83,6 @@
     "name": "Wellington Place (164)",
     "predicted": 34.3,
     "risk": 0.3722
-  },
-  {
-    "name": "South Riverdale (70)",
-    "predicted": 31.9,
-    "risk": 0.3418
   },
   {
     "name": "Milliken (130)",
@@ -178,11 +168,6 @@
     "name": "Eglinton East (138)",
     "predicted": 21.9,
     "risk": 0.2139
-  },
-  {
-    "name": "Harbourfront-CityPlace (165)",
-    "predicted": 21.5,
-    "risk": 0.2079
   },
   {
     "name": "Humber Summit (21)",
