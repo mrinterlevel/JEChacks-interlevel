@@ -1,0 +1,792 @@
+[
+  {
+    "name": "Mimico-Queensway (160)",
+    "predicted": 83.3,
+    "risk": 1.0
+  },
+  {
+    "name": "West Humber-Clairville (1)",
+    "predicted": 77.8,
+    "risk": 0.9287
+  },
+  {
+    "name": "Moss Park (73)",
+    "predicted": 69.0,
+    "risk": 0.8172
+  },
+  {
+    "name": "Annex (95)",
+    "predicted": 68.0,
+    "risk": 0.804
+  },
+  {
+    "name": "Downtown Yonge East (168)",
+    "predicted": 61.1,
+    "risk": 0.7159
+  },
+  {
+    "name": "Yonge-Bay Corridor (170)",
+    "predicted": 60.9,
+    "risk": 0.7126
+  },
+  {
+    "name": "York University Heights (27)",
+    "predicted": 56.4,
+    "risk": 0.6553
+  },
+  {
+    "name": "Kensington-Chinatown (78)",
+    "predicted": 45.1,
+    "risk": 0.5105
+  },
+  {
+    "name": "Clairlea-Birchmount (120)",
+    "predicted": 43.7,
+    "risk": 0.492
+  },
+  {
+    "name": "Yorkdale-Glen Park (31)",
+    "predicted": 42.5,
+    "risk": 0.4771
+  },
+  {
+    "name": "Etobicoke City Centre (159)",
+    "predicted": 41.9,
+    "risk": 0.4701
+  },
+  {
+    "name": "Rosedale-Moore Park (98)",
+    "predicted": 40.7,
+    "risk": 0.4541
+  },
+  {
+    "name": "Oakdale-Beverley Heights (154)",
+    "predicted": 40.7,
+    "risk": 0.454
+  },
+  {
+    "name": "St Lawrence-East Bayfront-The Islands (166)",
+    "predicted": 38.8,
+    "risk": 0.4296
+  },
+  {
+    "name": "Church-Wellesley (167)",
+    "predicted": 36.9,
+    "risk": 0.4052
+  },
+  {
+    "name": "Glenfield-Jane Heights (25)",
+    "predicted": 34.9,
+    "risk": 0.3802
+  },
+  {
+    "name": "Wexford/Maryvale (119)",
+    "predicted": 34.9,
+    "risk": 0.38
+  },
+  {
+    "name": "Wellington Place (164)",
+    "predicted": 34.3,
+    "risk": 0.3722
+  },
+  {
+    "name": "South Riverdale (70)",
+    "predicted": 31.9,
+    "risk": 0.3418
+  },
+  {
+    "name": "Milliken (130)",
+    "predicted": 31.0,
+    "risk": 0.3299
+  },
+  {
+    "name": "West Hill (136)",
+    "predicted": 30.5,
+    "risk": 0.3232
+  },
+  {
+    "name": "Downsview (155)",
+    "predicted": 28.9,
+    "risk": 0.3026
+  },
+  {
+    "name": "Woburn North (142)",
+    "predicted": 28.8,
+    "risk": 0.3022
+  },
+  {
+    "name": "South Parkdale (85)",
+    "predicted": 26.9,
+    "risk": 0.2777
+  },
+  {
+    "name": "Mount Olive-Silverstone-Jamestown (2)",
+    "predicted": 26.7,
+    "risk": 0.2751
+  },
+  {
+    "name": "Morningside Heights (144)",
+    "predicted": 26.3,
+    "risk": 0.2694
+  },
+  {
+    "name": "Newtonbrook West (36)",
+    "predicted": 25.3,
+    "risk": 0.2568
+  },
+  {
+    "name": "Black Creek (24)",
+    "predicted": 25.0,
+    "risk": 0.2534
+  },
+  {
+    "name": "Bendale-Glen Andrew (156)",
+    "predicted": 24.9,
+    "risk": 0.2516
+  },
+  {
+    "name": "Golfdale-Cedarbrae-Woburn (141)",
+    "predicted": 24.2,
+    "risk": 0.2427
+  },
+  {
+    "name": "Humbermede (22)",
+    "predicted": 23.7,
+    "risk": 0.2363
+  },
+  {
+    "name": "Dorset Park (126)",
+    "predicted": 23.4,
+    "risk": 0.2323
+  },
+  {
+    "name": "Junction-Wallace Emerson (171)",
+    "predicted": 23.1,
+    "risk": 0.2293
+  },
+  {
+    "name": "Birchcliffe-Cliffside (122)",
+    "predicted": 22.1,
+    "risk": 0.2159
+  },
+  {
+    "name": "North St.James Town (74)",
+    "predicted": 21.9,
+    "risk": 0.214
+  },
+  {
+    "name": "Eglinton East (138)",
+    "predicted": 21.9,
+    "risk": 0.2139
+  },
+  {
+    "name": "Harbourfront-CityPlace (165)",
+    "predicted": 21.5,
+    "risk": 0.2079
+  },
+  {
+    "name": "Humber Summit (21)",
+    "predicted": 21.0,
+    "risk": 0.2016
+  },
+  {
+    "name": "Tam O'Shanter-Sullivan (118)",
+    "predicted": 20.9,
+    "risk": 0.2012
+  },
+  {
+    "name": "Agincourt South-Malvern West (128)",
+    "predicted": 20.5,
+    "risk": 0.1951
+  },
+  {
+    "name": "Banbury-Don Mills (42)",
+    "predicted": 20.2,
+    "risk": 0.1913
+  },
+  {
+    "name": "Don Valley Village (47)",
+    "predicted": 19.6,
+    "risk": 0.1836
+  },
+  {
+    "name": "Kennedy Park (124)",
+    "predicted": 19.2,
+    "risk": 0.1792
+  },
+  {
+    "name": "Fenside-Parkwoods (150)",
+    "predicted": 19.2,
+    "risk": 0.179
+  },
+  {
+    "name": "Stonegate-Queensway (16)",
+    "predicted": 19.2,
+    "risk": 0.1788
+  },
+  {
+    "name": "Agincourt North (129)",
+    "predicted": 19.2,
+    "risk": 0.1785
+  },
+  {
+    "name": "Rockcliffe-Smythe (111)",
+    "predicted": 18.7,
+    "risk": 0.1728
+  },
+  {
+    "name": "East End-Danforth (62)",
+    "predicted": 18.4,
+    "risk": 0.1689
+  },
+  {
+    "name": "Islington (158)",
+    "predicted": 18.4,
+    "risk": 0.1685
+  },
+  {
+    "name": "Thorncliffe Park (55)",
+    "predicted": 18.3,
+    "risk": 0.1676
+  },
+  {
+    "name": "Humber Bay Shores (161)",
+    "predicted": 17.9,
+    "risk": 0.1618
+  },
+  {
+    "name": "Malvern West (145)",
+    "predicted": 17.7,
+    "risk": 0.1597
+  },
+  {
+    "name": "Weston (113)",
+    "predicted": 17.7,
+    "risk": 0.1595
+  },
+  {
+    "name": "Oakridge (121)",
+    "predicted": 17.5,
+    "risk": 0.1567
+  },
+  {
+    "name": "Malvern East (146)",
+    "predicted": 16.8,
+    "risk": 0.1479
+  },
+  {
+    "name": "Roncesvalles (86)",
+    "predicted": 16.7,
+    "risk": 0.1474
+  },
+  {
+    "name": "University (79)",
+    "predicted": 16.6,
+    "risk": 0.145
+  },
+  {
+    "name": "L'Amoreaux West (147)",
+    "predicted": 16.5,
+    "risk": 0.144
+  },
+  {
+    "name": "Bayview Village (52)",
+    "predicted": 16.5,
+    "risk": 0.1439
+  },
+  {
+    "name": "Clanton Park (33)",
+    "predicted": 16.3,
+    "risk": 0.1423
+  },
+  {
+    "name": "Kingsview Village-The Westway (6)",
+    "predicted": 16.3,
+    "risk": 0.142
+  },
+  {
+    "name": "Junction Area (90)",
+    "predicted": 16.2,
+    "risk": 0.1402
+  },
+  {
+    "name": "Hillcrest Village (48)",
+    "predicted": 16.1,
+    "risk": 0.1399
+  },
+  {
+    "name": "Brookhaven-Amesbury (30)",
+    "predicted": 16.0,
+    "risk": 0.1376
+  },
+  {
+    "name": "Bay-Cloverhill (169)",
+    "predicted": 16.0,
+    "risk": 0.1374
+  },
+  {
+    "name": "Willowridge-Martingrove-Richview (7)",
+    "predicted": 15.9,
+    "risk": 0.1373
+  },
+  {
+    "name": "Danforth (66)",
+    "predicted": 15.9,
+    "risk": 0.1369
+  },
+  {
+    "name": "Fort York-Liberty Village (163)",
+    "predicted": 15.6,
+    "risk": 0.1334
+  },
+  {
+    "name": "O'Connor-Parkview (54)",
+    "predicted": 15.4,
+    "risk": 0.1306
+  },
+  {
+    "name": "Oakwood Village (107)",
+    "predicted": 15.4,
+    "risk": 0.1303
+  },
+  {
+    "name": "Scarborough Village (139)",
+    "predicted": 15.1,
+    "risk": 0.1266
+  },
+  {
+    "name": "East L'Amoreaux (148)",
+    "predicted": 15.1,
+    "risk": 0.1259
+  },
+  {
+    "name": "Flemingdon Park (44)",
+    "predicted": 14.8,
+    "risk": 0.1227
+  },
+  {
+    "name": "Victoria Village (43)",
+    "predicted": 14.8,
+    "risk": 0.1227
+  },
+  {
+    "name": "High Park-Swansea (87)",
+    "predicted": 14.8,
+    "risk": 0.1221
+  },
+  {
+    "name": "North Toronto (173)",
+    "predicted": 14.6,
+    "risk": 0.1195
+  },
+  {
+    "name": "Newtonbrook East (50)",
+    "predicted": 14.5,
+    "risk": 0.1189
+  },
+  {
+    "name": "Westminster-Branson (35)",
+    "predicted": 14.3,
+    "risk": 0.1165
+  },
+  {
+    "name": "St.Andrew-Windfields (40)",
+    "predicted": 14.3,
+    "risk": 0.116
+  },
+  {
+    "name": "South Eglinton-Davisville (174)",
+    "predicted": 14.1,
+    "risk": 0.1137
+  },
+  {
+    "name": "High Park North (88)",
+    "predicted": 14.0,
+    "risk": 0.1129
+  },
+  {
+    "name": "Dufferin Grove (83)",
+    "predicted": 14.0,
+    "risk": 0.1121
+  },
+  {
+    "name": "Cliffcrest (123)",
+    "predicted": 13.8,
+    "risk": 0.1098
+  },
+  {
+    "name": "Greenwood-Coxwell (65)",
+    "predicted": 13.8,
+    "risk": 0.1096
+  },
+  {
+    "name": "Briar Hill-Belgravia (108)",
+    "predicted": 13.7,
+    "risk": 0.1079
+  },
+  {
+    "name": "Steeles (116)",
+    "predicted": 13.6,
+    "risk": 0.1071
+  },
+  {
+    "name": "Willowdale West (37)",
+    "predicted": 13.5,
+    "risk": 0.1062
+  },
+  {
+    "name": "Wychwood (94)",
+    "predicted": 13.4,
+    "risk": 0.1051
+  },
+  {
+    "name": "Bedford Park-Nortown (39)",
+    "predicted": 13.3,
+    "risk": 0.1038
+  },
+  {
+    "name": "Taylor-Massey (61)",
+    "predicted": 13.3,
+    "risk": 0.1036
+  },
+  {
+    "name": "Leaside-Bennington (56)",
+    "predicted": 13.3,
+    "risk": 0.1034
+  },
+  {
+    "name": "Yonge-Doris (151)",
+    "predicted": 13.3,
+    "risk": 0.103
+  },
+  {
+    "name": "Little Portugal (84)",
+    "predicted": 13.2,
+    "risk": 0.1024
+  },
+  {
+    "name": "Corso Italia-Davenport (92)",
+    "predicted": 13.1,
+    "risk": 0.1014
+  },
+  {
+    "name": "Morningside (135)",
+    "predicted": 13.1,
+    "risk": 0.1003
+  },
+  {
+    "name": "Trinity-Bellwoods (81)",
+    "predicted": 13.0,
+    "risk": 0.0991
+  },
+  {
+    "name": "Regent Park (72)",
+    "predicted": 12.8,
+    "risk": 0.0967
+  },
+  {
+    "name": "Lawrence Park South (103)",
+    "predicted": 12.6,
+    "risk": 0.0941
+  },
+  {
+    "name": "Parkwoods-O'Connor Hills (149)",
+    "predicted": 12.4,
+    "risk": 0.092
+  },
+  {
+    "name": "Englemount-Lawrence (32)",
+    "predicted": 12.3,
+    "risk": 0.0903
+  },
+  {
+    "name": "Lansing-Westgate (38)",
+    "predicted": 12.1,
+    "risk": 0.0878
+  },
+  {
+    "name": "New Toronto (18)",
+    "predicted": 11.8,
+    "risk": 0.0848
+  },
+  {
+    "name": "Eringate-Centennial-West Deane (11)",
+    "predicted": 11.7,
+    "risk": 0.0832
+  },
+  {
+    "name": "West Rouge (143)",
+    "predicted": 11.6,
+    "risk": 0.0815
+  },
+  {
+    "name": "Pelmo Park-Humberlea (23)",
+    "predicted": 11.4,
+    "risk": 0.0786
+  },
+  {
+    "name": "Playter Estates-Danforth (67)",
+    "predicted": 11.2,
+    "risk": 0.0763
+  },
+  {
+    "name": "Princess-Rosethorn (10)",
+    "predicted": 10.9,
+    "risk": 0.0726
+  },
+  {
+    "name": "Cabbagetown-South St.James Town (71)",
+    "predicted": 10.7,
+    "risk": 0.0697
+  },
+  {
+    "name": "Mount Pleasant East (99)",
+    "predicted": 10.6,
+    "risk": 0.0684
+  },
+  {
+    "name": "Humewood-Cedarvale (106)",
+    "predicted": 10.5,
+    "risk": 0.0671
+  },
+  {
+    "name": "The Beaches (63)",
+    "predicted": 10.4,
+    "risk": 0.066
+  },
+  {
+    "name": "Yonge-Eglinton (100)",
+    "predicted": 10.1,
+    "risk": 0.0625
+  },
+  {
+    "name": "Henry Farm (53)",
+    "predicted": 9.9,
+    "risk": 0.0601
+  },
+  {
+    "name": "East Willowdale (152)",
+    "predicted": 9.9,
+    "risk": 0.0599
+  },
+  {
+    "name": "Elms-Old Rexdale (5)",
+    "predicted": 9.9,
+    "risk": 0.0599
+  },
+  {
+    "name": "Bayview Woods-Steeles (49)",
+    "predicted": 9.8,
+    "risk": 0.0585
+  },
+  {
+    "name": "Bendale South (157)",
+    "predicted": 9.8,
+    "risk": 0.0583
+  },
+  {
+    "name": "North Riverdale (68)",
+    "predicted": 9.7,
+    "risk": 0.0568
+  },
+  {
+    "name": "Rustic (28)",
+    "predicted": 9.5,
+    "risk": 0.0547
+  },
+  {
+    "name": "Edenbridge-Humber Valley (9)",
+    "predicted": 9.5,
+    "risk": 0.0543
+  },
+  {
+    "name": "Pleasant View (46)",
+    "predicted": 9.2,
+    "risk": 0.0506
+  },
+  {
+    "name": "Long Branch (19)",
+    "predicted": 9.2,
+    "risk": 0.0506
+  },
+  {
+    "name": "Alderwood (20)",
+    "predicted": 9.1,
+    "risk": 0.0503
+  },
+  {
+    "name": "Ionview (125)",
+    "predicted": 9.1,
+    "risk": 0.0493
+  },
+  {
+    "name": "Mount Dennis (115)",
+    "predicted": 9.1,
+    "risk": 0.0493
+  },
+  {
+    "name": "Thistletown-Beaumond Heights (3)",
+    "predicted": 9.0,
+    "risk": 0.0489
+  },
+  {
+    "name": "Bathurst Manor (34)",
+    "predicted": 8.9,
+    "risk": 0.0474
+  },
+  {
+    "name": "Weston-Pelham Park (91)",
+    "predicted": 8.9,
+    "risk": 0.0472
+  },
+  {
+    "name": "Avondale (153)",
+    "predicted": 8.9,
+    "risk": 0.0472
+  },
+  {
+    "name": "Yonge-St.Clair (97)",
+    "predicted": 8.9,
+    "risk": 0.0468
+  },
+  {
+    "name": "Dovercourt Village (172)",
+    "predicted": 8.8,
+    "risk": 0.0455
+  },
+  {
+    "name": "Forest Hill North (102)",
+    "predicted": 8.7,
+    "risk": 0.045
+  },
+  {
+    "name": "Woodbine Corridor (64)",
+    "predicted": 8.7,
+    "risk": 0.045
+  },
+  {
+    "name": "Casa Loma (96)",
+    "predicted": 8.7,
+    "risk": 0.0443
+  },
+  {
+    "name": "Broadview North (57)",
+    "predicted": 8.6,
+    "risk": 0.0428
+  },
+  {
+    "name": "West Queen West (162)",
+    "predicted": 8.5,
+    "risk": 0.0417
+  },
+  {
+    "name": "Etobicoke West Mall (13)",
+    "predicted": 8.4,
+    "risk": 0.0401
+  },
+  {
+    "name": "Palmerston-Little Italy (80)",
+    "predicted": 8.3,
+    "risk": 0.0398
+  },
+  {
+    "name": "Danforth East York (59)",
+    "predicted": 8.2,
+    "risk": 0.0379
+  },
+  {
+    "name": "Highland Creek (134)",
+    "predicted": 8.1,
+    "risk": 0.0374
+  },
+  {
+    "name": "Rexdale-Kipling (4)",
+    "predicted": 8.1,
+    "risk": 0.0362
+  },
+  {
+    "name": "Markland Wood (12)",
+    "predicted": 7.9,
+    "risk": 0.034
+  },
+  {
+    "name": "Keelesdale-Eglinton West (110)",
+    "predicted": 7.7,
+    "risk": 0.0323
+  },
+  {
+    "name": "Runnymede-Bloor West Village (89)",
+    "predicted": 7.7,
+    "risk": 0.0323
+  },
+  {
+    "name": "Bridle Path-Sunnybrook-York Mills (41)",
+    "predicted": 7.7,
+    "risk": 0.0318
+  },
+  {
+    "name": "Caledonia-Fairbank (109)",
+    "predicted": 7.5,
+    "risk": 0.0297
+  },
+  {
+    "name": "Humber Heights-Westmount (8)",
+    "predicted": 7.2,
+    "risk": 0.0255
+  },
+  {
+    "name": "Old East York (58)",
+    "predicted": 7.0,
+    "risk": 0.0232
+  },
+  {
+    "name": "Centennial Scarborough (133)",
+    "predicted": 6.9,
+    "risk": 0.0216
+  },
+  {
+    "name": "Lawrence Park North (105)",
+    "predicted": 6.9,
+    "risk": 0.0216
+  },
+  {
+    "name": "Beechborough-Greenbrook (112)",
+    "predicted": 6.8,
+    "risk": 0.0204
+  },
+  {
+    "name": "Kingsway South (15)",
+    "predicted": 6.5,
+    "risk": 0.0165
+  },
+  {
+    "name": "Woodbine-Lumsden (60)",
+    "predicted": 6.4,
+    "risk": 0.0149
+  },
+  {
+    "name": "Forest Hill South (101)",
+    "predicted": 6.3,
+    "risk": 0.0144
+  },
+  {
+    "name": "Maple Leaf (29)",
+    "predicted": 6.1,
+    "risk": 0.0118
+  },
+  {
+    "name": "Blake-Jones (69)",
+    "predicted": 5.8,
+    "risk": 0.0074
+  },
+  {
+    "name": "Guildwood (140)",
+    "predicted": 5.5,
+    "risk": 0.0036
+  },
+  {
+    "name": "Lambton Baby Point (114)",
+    "predicted": 5.2,
+    "risk": 0.0
+  }
+]

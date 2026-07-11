@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { AlertCircle, Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, MapPin, ChevronDown, ChevronUp } from 'lucide-react';
 
 export type DistressSignal = {
   id: string;
