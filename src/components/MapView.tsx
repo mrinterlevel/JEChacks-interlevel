@@ -912,8 +912,7 @@ function addDistressLayers(
 ) {
   map.addSource(SOURCES.distress, { type: "geojson", data });
 
-  // Past (resolved) signals — calmer than the live pins, but still clearly
-  // legible so historical interactions read around the live signal.
+  // Resolved signals.
   map.addLayer({
     id: LAYERS.distressPast,
     type: "circle",
@@ -930,8 +929,7 @@ function addDistressLayers(
     },
   });
 
-  // Active signals — an animated halo (pulsed from the component) plus a bright
-  // solid core so live emergencies read with urgency.
+  // Active signals: pulsing halo plus a solid core.
   map.addLayer({
     id: LAYERS.distressActiveHalo,
     type: "circle",
@@ -1198,8 +1196,7 @@ export default function MapView({
 
     const crimeView = mapMode === "crime";
 
-    // Crime analysis layers are visible only on the crime map, and only when
-    // their individual toggle is on. Distress signals never bleed into it.
+    // Crime layers only on the crime view, distress layers only on the distress view.
     setLayerVisibility(map, [LAYERS.heatmap], crimeView && visibility.heatmap);
     setLayerVisibility(
       map,
@@ -1223,14 +1220,12 @@ export default function MapView({
       crimeView && visibility.riskZones,
     );
 
-    // Buildings are neutral basemap context, kept in both views.
+    // Buildings stay on in both views.
     setLayerVisibility(map, [LAYERS.buildings], visibility.buildings);
 
-    // Distress markers live only on the distress view.
     setLayerVisibility(map, DISTRESS_LAYER_IDS, !crimeView);
   }, [dataReady, visibility, mapMode]);
 
-  // Keep the distress source in sync with the shared realtime feed.
   useEffect(() => {
     distressRef.current = distressSignals;
     const map = mapRef.current;
@@ -1239,14 +1234,11 @@ export default function MapView({
     source?.setData(toDistressGeoJSON(distressSignals));
   }, [dataReady, distressSignals]);
 
-  // Frame the relevant area when the view switches.
   useEffect(() => {
     const map = mapRef.current;
     if (!dataReady || !map) return;
     if (mapMode === "distress") {
-      // Zoom into the live distress signals (Square One) at an angle — close
-      // enough that the 3D buildings render, but wide enough that the cluster
-      // of past interactions around the mall stays in frame.
+      // Angle into Square One, close enough to show the 3D buildings.
       map.easeTo({
         center: SQUARE_ONE_CENTER,
         zoom: 15.1,
@@ -1265,7 +1257,7 @@ export default function MapView({
     }
   }, [dataReady, mapMode]);
 
-  // Pulse the active-signal halo so live emergencies visibly throb.
+  // Animate the active-signal halo.
   useEffect(() => {
     const map = mapRef.current;
     if (!dataReady || !map || mapMode !== "distress") return;
@@ -1273,7 +1265,7 @@ export default function MapView({
     let frame = 0;
     const animate = () => {
       if (map.getLayer(LAYERS.distressActiveHalo)) {
-        const t = (Math.sin(performance.now() / 480) + 1) / 2; // 0..1
+        const t = (Math.sin(performance.now() / 480) + 1) / 2;
         map.setPaintProperty(LAYERS.distressActiveHalo, "circle-radius", 16 + t * 26);
         map.setPaintProperty(LAYERS.distressActiveHalo, "circle-opacity", 0.32 - t * 0.26);
       }
@@ -1452,7 +1444,7 @@ export default function MapView({
 
           <div className="flex items-start gap-2 rounded-xl border border-brand-border bg-brand-bg/70 p-3 text-[11px] text-brand-text-muted">
             <Radio className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-primary" />
-            <span>Live signals stream in from Supabase in realtime and pin to Square One. Predictions and heatmaps stay off this view.</span>
+            <span>Live signals arrive in realtime and pin to Square One. Predictions and heatmaps stay off this view.</span>
           </div>
 
           <button type="button" onClick={resetView} className="flex w-full items-center justify-center gap-2 rounded-xl border border-brand-border bg-brand-bg px-3 py-2 text-xs font-medium text-brand-text transition-colors hover:bg-brand-card">

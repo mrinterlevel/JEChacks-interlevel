@@ -21,7 +21,7 @@ export default function TopBar({
         <span className="font-semibold text-sm tracking-widest text-brand-text">CRIMEWATCHER</span>
       </div>
 
-      {/* Mode Toggle — Crime map is the default view, distress is opt-in */}
+      {/* Mode toggle */}
       <div className="flex bg-brand-panel p-1 rounded-full shadow-lg border border-brand-border">
         <button
           onClick={() => onModeChange('crime')}

@@ -1,36 +1,11 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## What it does
+Navigating to the website, for police use alone, displays an interactive map displaying heat-maps, reported incidents, and live distress signals. These live distress signals come from our CrimeWatcher app for public use, to help police and first responders visually locate anyone who needs urgent help. The CrimeWatcher app listens to a phrase entered by the user, and if spoken at any time, will call 911 and display the data through our database. An instant call for help without needing to take out your phone helps our users stay focused on reducing their risk, evaluating their situation, and helping themselves while first responders are on the way.
 
-## Getting Started
+## How we built it
+We pulled about 475,000 crime incidents from Toronto Police's open data. That's ten years of history across 158 neighbourhoods. We trained a gradient-boosted regression model in Google Colab with scikit-learn. It takes each neighbourhood's recent trend and predicts next month's crime count. For the test set, we held back the last six months of data as. The model was off by about only 6%
 
-First, run the development server:
+## Accomplishments that we're proud of
+Our map was able to accurately map dangerous areas, seen through Mimico Queensway. Our model treated this neighbourhood as the most dangerous, at a risk of 98%, and online sources will also say that this neighbourhood is prone to higher crime than most of Toronto. This shows that we've built a viable product for use, and a successful foundation for our model training
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## What's next for CrimeWatcher
+It will be best to expand CrimeWatcher's crime analysis outside of Toronto, and more throughout other parts of Canada. We chose Toronto as our main focus for this project as it has the greatest amount of data so our model can be as accurate as possible. In the future, we intend that distress signals will be actively training our model similar to past crime data sets. This is in hopes that our project helps first responders with new information, rather than relying on only their own.
