@@ -19,7 +19,6 @@ export default function Sidebar({
   distressSignals: DistressSignal[];
   onResolve: (id: string) => void;
 }) {
-  // The distress feed only belongs on the distress view.
   if (mapMode !== 'distress') return null;
 
   const activeCount = distressSignals.filter((signal) => signal.status === 'active').length;
@@ -54,8 +53,7 @@ export default function Sidebar({
   );
 }
 
-// Memoized so resolving one signal doesn't re-render all ~800 cards — only the
-// card whose signal object actually changed re-renders.
+// Memoized to avoid re-rendering every card on each resolve.
 const SignalCard = React.memo(function SignalCard({
   signal,
   onResolve,
@@ -94,7 +92,6 @@ const SignalCard = React.memo(function SignalCard({
 
         <h3 className="mb-4 text-md font-medium text-brand-text">{signal.locationName}</h3>
 
-        {/* Details are shown open by default — no click required. */}
         <div className="grid grid-cols-1 gap-2 rounded-lg bg-brand-bg p-3 text-sm">
           <DetailRow icon={Clock} label="Reported">
             <span className="text-brand-text">{formatTimestamp(signal.createdAt)}</span>

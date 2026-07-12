@@ -4,28 +4,23 @@ import { useCallback, useEffect, useState } from "react";
 
 import { supabase } from "@/lib/supabase";
 
-/** The two views available in the top bar. Crime map is the default. */
 export type MapMode = "crime" | "distress";
 
 export type DistressStatus = "active" | "past";
 
 export type DistressSignal = {
-  id: string; // stable unique key (Supabase UUID for live signals)
-  ref: string; // human-facing reference, e.g. "SW-2026-483920"
+  id: string;
+  ref: string;
   reporter: string;
   locationName: string;
   category: string;
   lat: number;
   lng: number;
-  createdAt: string; // ISO timestamp
+  createdAt: string;
   status: DistressStatus;
 };
 
-/**
- * Square One Shopping Centre, Mississauga. Every distress signal that arrives
- * from Supabase is pinned here per product spec — the mobile app's raw
- * coordinates are ignored so the live demo always lights up one known place.
- */
+// Live Supabase signals are all pinned to Square One (Mississauga).
 export const SQUARE_ONE = {
   lat: 43.5931,
   lng: -79.6425,
@@ -42,7 +37,6 @@ type DistressRow = {
   name: string | null;
 };
 
-// Deterministic hash so a given signal id always jitters to the same spot.
 function hashString(value: string): number {
   let hash = 2166136261;
   for (let index = 0; index < value.length; index += 1) {
@@ -52,15 +46,11 @@ function hashString(value: string): number {
   return hash >>> 0;
 }
 
-/**
- * Nudge a coordinate a few metres from an anchor so multiple signals pinned to
- * the same place (Square One) stay individually visible and clickable instead
- * of stacking on one pixel. Deterministic per seed to avoid pins jumping.
- */
+// Small deterministic offset so co-located pins don't stack on one pixel.
 function jitterAround(lat: number, lng: number, seed: string) {
   const hash = hashString(seed);
   const angle = (hash % 360) * (Math.PI / 180);
-  const distance = (((hash >>> 9) % 1000) / 1000) * 0.0012; // up to ~130m
+  const distance = (((hash >>> 9) % 1000) / 1000) * 0.0012;
   return {
     lat: lat + Math.sin(angle) * distance,
     lng: lng + Math.cos(angle) * distance,
@@ -70,8 +60,6 @@ function jitterAround(lat: number, lng: number, seed: string) {
 function mapRowToSignal(row: DistressRow): DistressSignal {
   const id = String(row.id);
   const jittered = jitterAround(SQUARE_ONE.lat, SQUARE_ONE.lng, id);
-  // Derive a clean, branded reference from the UUID so live signals read the
-  // same way as historical ones instead of exposing a raw UUID.
   const ref = `SW-2026-${(hashString(id) % 900_000) + 100_000}`;
   return {
     id,
@@ -88,9 +76,7 @@ function mapRowToSignal(row: DistressRow): DistressSignal {
 
 type Area = { name: string; lat: number; lng: number };
 
-// Real neighbourhoods/landmarks with accurate coordinates. Fake historical
-// signals anchor to one of these and jitter only ~120m, so a pin labelled
-// (say) "Kensington Market" actually sits at Kensington Market.
+// Anchor points for the seeded historical signals.
 const TORONTO_AREAS: Area[] = [
   { name: "Yonge-Dundas Square", lat: 43.6561, lng: -79.3802 },
   { name: "Kensington Market", lat: 43.6547, lng: -79.4005 },
@@ -122,9 +108,7 @@ const TORONTO_AREAS: Area[] = [
   { name: "Islington-City Centre", lat: 43.644, lng: -79.534 },
 ];
 
-// Just a few resolved signals right around the mall — enough to show a little
-// past context next to the live signal, not a swarm. These are placed as a
-// fixed handful (see SQUARE_ONE_CORE_COUNT), not part of the weighted pool.
+// A few resolved signals near the mall, placed as a fixed handful.
 const SQUARE_ONE_CORE: Area[] = [
   { name: "Square One – North Entrance", lat: 43.5943, lng: -79.6428 },
   { name: "Square One – South Entrance", lat: 43.5921, lng: -79.6423 },
@@ -144,7 +128,7 @@ const MISSISSAUGA_AREAS: Area[] = [
   { name: "Malton", lat: 43.708, lng: -79.639 },
 ];
 
-// Rest of Peel Region — Brampton and Caledon.
+// Rest of Peel: Brampton and Caledon.
 const PEEL_AREAS: Area[] = [
   { name: "Bramalea City Centre", lat: 43.7156, lng: -79.6979 },
   { name: "Downtown Brampton", lat: 43.6853, lng: -79.7597 },
@@ -156,9 +140,7 @@ const PEEL_AREAS: Area[] = [
   { name: "Southfields Village", lat: 43.753, lng: -79.772 },
 ];
 
-// Weighted so incidents stay Toronto-heavy, with some elsewhere in Mississauga
-// and a bit across the rest of Peel. (Square One gets only a fixed handful,
-// handled separately.)
+// Weighted toward Toronto, with some Mississauga and a bit of Peel.
 const AREA_GROUPS: Array<{ weight: number; areas: Area[] }> = [
   { weight: 76, areas: TORONTO_AREAS },
   { weight: 16, areas: MISSISSAUGA_AREAS },
@@ -176,8 +158,6 @@ function pickArea(rand: () => number): Area {
   return last.areas[Math.floor(rand() * last.areas.length)];
 }
 
-// Crime-report categories only — no medical or "detection"-style signals.
-// SafeWatch signals are user-triggered reports of criminal activity.
 const PAST_CATEGORIES = [
   "Panic button pressed",
   "Harassment reported",
@@ -204,8 +184,7 @@ const PAST_REPORTERS = [
 
 const PAST_COUNT = 812;
 
-// Deterministic PRNG (mulberry32) so the generated fake data is identical on
-// every render and across server/client — no duplicate keys, no jumping pins.
+// Seeded PRNG so the generated data is stable across renders and SSR.
 function mulberry32(seed: number) {
   return function next() {
     seed |= 0;
@@ -223,17 +202,15 @@ function buildPastSignals(): DistressSignal[] {
   const signals: DistressSignal[] = [];
 
   for (let index = 0; index < PAST_COUNT; index += 1) {
-    // The first few land right around Square One (a little past context beside
-    // the live signal); everything else is spread across the region.
+    // First few sit near Square One, the rest spread across the region.
     const area =
       index < SQUARE_ONE_CORE_COUNT
         ? SQUARE_ONE_CORE[index]
         : pickArea(rand);
     const category = PAST_CATEGORIES[Math.floor(rand() * PAST_CATEGORIES.length)];
     const reporter = PAST_REPORTERS[Math.floor(rand() * PAST_REPORTERS.length)];
-    const minutesAgo = 30 + Math.floor(rand() * 43_200); // up to ~30 days ago
+    const minutesAgo = 30 + Math.floor(rand() * 43_200);
 
-    // Unique, proper-looking reference id, e.g. "SW-2026-483920".
     let ref = 100000 + Math.floor(rand() * 899_999);
     while (usedRefs.has(ref)) ref = 100000 + Math.floor(rand() * 899_999);
     usedRefs.add(ref);
@@ -245,7 +222,7 @@ function buildPastSignals(): DistressSignal[] {
       reporter,
       locationName: area.name,
       category,
-      lat: area.lat + (rand() - 0.5) * 0.0022, // ~±120m jitter — stays on-location
+      lat: area.lat + (rand() - 0.5) * 0.0022,
       lng: area.lng + (rand() - 0.5) * 0.003,
       createdAt: new Date(now - minutesAgo * 60_000).toISOString(),
       status: "past",
@@ -255,7 +232,7 @@ function buildPastSignals(): DistressSignal[] {
   return signals;
 }
 
-// Active first, then newest first within each group.
+// Active first, then newest first.
 function sortSignals(signals: DistressSignal[]): DistressSignal[] {
   return [...signals].sort((a, b) => {
     if (a.status !== b.status) return a.status === "active" ? -1 : 1;
@@ -269,25 +246,15 @@ function mergeById(existing: DistressSignal[], incoming: DistressSignal[]): Dist
   return sortSignals([...byId.values()]);
 }
 
-/**
- * Shared source of truth for distress signals. Seeds fake historical signals,
- * loads the current ones from Supabase, and keeps a single realtime
- * subscription open so both the map and the sidebar update together on INSERT.
- */
 export type DistressStore = {
   signals: DistressSignal[];
   resolveSignal: (id: string) => void;
 };
 
 export function useDistressSignals(): DistressStore {
-  // Lazily seed the fake historical signals so they're present on first paint.
-  // The default crime view never renders signal content, so the client-computed
-  // timestamps can't cause a hydration mismatch.
   const [signals, setSignals] = useState<DistressSignal[]>(buildPastSignals);
 
-  // Mark an active signal as resolved. Kept in local state (the Supabase table
-  // has no status column) — this flips the map marker to its muted "past" style
-  // and moves the card into the resolved group.
+  // Resolve is local-only; the table has no status column.
   const resolveSignal = useCallback((id: string) => {
     setSignals((prev) =>
       sortSignals(
@@ -332,7 +299,6 @@ export function useDistressSignals(): DistressStore {
   return { signals, resolveSignal };
 }
 
-/** Human-friendly "3m ago" style relative time. */
 export function formatRelativeTime(iso: string): string {
   const diffMs = Date.now() - new Date(iso).getTime();
   const minutes = Math.max(0, Math.round(diffMs / 60_000));
@@ -344,7 +310,6 @@ export function formatRelativeTime(iso: string): string {
   return `${days}d ago`;
 }
 
-/** Absolute clock time, e.g. "Jul 11, 2:04 PM". */
 export function formatTimestamp(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
     month: "short",
